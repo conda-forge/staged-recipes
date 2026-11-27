@@ -53,9 +53,41 @@ KEEP_GIT = {
 USAGE = (
     "usage:\n"
     "    gen_extra_metadata.py base <gen_deps.toml> <site-packages>\n"
-    "    gen_extra_metadata.py extra <gen_deps.toml> <root_pyproject.toml>"
-    " <site-packages> <extra> <version>"
+    "    gen_extra_metadata.py extras <gen_deps.toml> <root_pyproject.toml>"
+    " <site-packages> <version>"
 )
+
+# Extras shipped as a metapackage, each one an output of the recipe.
+PACKAGED_EXTRAS = (
+    "all",
+    "video",
+    "wandb",
+    "sb3",
+    "viser",
+    "rerun",
+    "mimic",
+    "tetrahedralization",
+    "leapp",
+    "torchrl",
+)
+
+# Upstream extras deliberately not shipped.
+# A new upstream extra must be added to one of the two lists, so the build stops instead of dropping it silently.
+SKIPPED_EXTRAS = {
+    "dev": "development tools",
+    "test": "test dependencies, the recipe tests use their own",
+    "importers": "not packaged",
+    "isaacsim": "closed-source Kit wheel",
+    "ov": "closed-source Omniverse wheels",
+    "ovphysx": "closed-source Omniverse wheel",
+    "ovrtx": "closed-source Omniverse wheel",
+    "rl-games": "no conda-forge feedstock",
+    "rlinf": "not packaged",
+    "rsl-rl": "already in the base",
+    "skrl": "no conda-forge feedstock",
+    "skrl-jax": "no conda-forge feedstock",
+    "teleop": "needs isaacteleop, which is not on conda-forge",
+}
 
 
 def dist_name(requirement: str) -> str:
@@ -92,6 +124,25 @@ def cmd_base(gen_deps_path: str, site_packages: str) -> None:
     print(f"isaaclab: injected {len(names)} Requires-Dist")
 
 
+def check_extras(root_pyproject_path: str) -> None:
+    with open(root_pyproject_path, "rb") as handle:
+        upstream = set(tomllib.load(handle)["project"].get("optional-dependencies", {}))
+    known = set(PACKAGED_EXTRAS) | set(SKIPPED_EXTRAS)
+    if upstream != known:
+        raise SystemExit(
+            "Upstream extras changed.\n"
+            f"  new upstream, not handled: {sorted(upstream - known) or 'none'}\n"
+            f"  handled, gone upstream: {sorted(known - upstream) or 'none'}\n"
+            "Update PACKAGED_EXTRAS or SKIPPED_EXTRAS here, and the matching outputs in recipe.yaml."
+        )
+
+
+def cmd_extras(gen_deps_path: str, root_pyproject_path: str, site_packages: str, version: str) -> None:
+    check_extras(root_pyproject_path)
+    for extra in PACKAGED_EXTRAS:
+        cmd_extra(gen_deps_path, root_pyproject_path, site_packages, extra, version)
+
+
 def cmd_extra(
     gen_deps_path: str, root_pyproject_path: str, site_packages: str, extra: str, version: str
 ) -> None:
@@ -115,8 +166,8 @@ def main() -> int:
     args = sys.argv[1:]
     if len(args) >= 3 and args[0] == "base" and len(args) == 3:
         cmd_base(args[1], args[2])
-    elif len(args) == 6 and args[0] == "extra":
-        cmd_extra(args[1], args[2], args[3], args[4], args[5])
+    elif len(args) == 5 and args[0] == "extras":
+        cmd_extras(args[1], args[2], args[3], args[4])
     else:
         print(USAGE, file=sys.stderr)
         return 1
