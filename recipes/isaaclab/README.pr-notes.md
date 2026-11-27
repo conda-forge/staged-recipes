@@ -94,13 +94,14 @@ their subpackages stay commented in `recipe.yaml`.
 | `ovphysx`, `ovrtx`, `ovstage` | closed-source, not redistributable | `extra=ov` |
 | `skrl` | no conda-forge feedstock | `extra=skrl` |
 | `rl-games`, `standard-distutils` | no conda-forge feedstock | `extra=rl-games` |
-| `rlinf` stack | deps exist but do not co-solve | `extra=rlinf` |
+| `rlinf` stack | enabled, with a `simsimd <7` pin | `extra=rlinf` |
 
-The disabled extra subpackages are `isaaclab-skrl`, `isaaclab-rl-games` and
-`isaaclab-rlinf`. `rlinf` is blocked by a solver conflict, not a missing
-feedstock: `decord2` pulls `ffmpeg 9 -> libopenvino-onnx-frontend -> libabseil
-20260526`, while `ray-default` pins `libgrpc` to an older `libabseil`, so the two
-cannot share it until the conda-forge `libabseil` migration settles.
+The disabled extra subpackages are `isaaclab-skrl` and `isaaclab-rl-games`.
+
+`isaaclab-rlinf` is enabled.
+The old `libabseil` conflict between `decord2` and `ray-default` is gone.
+It pins `simsimd <7`, because the conda `albumentations` fixes `albucore 0.0.24`, which imports `simsimd`, and `simsimd` 7 became NumKong without that module.
+Drop the pin once the `albumentations` feedstock moves to a newer `albucore`.
 
 ## Pin changes vs upstream
 
