@@ -1,0 +1,82 @@
+context:
+  version: "0.4.0"
+  python_min: "3.15"
+
+package:
+  name: bilt
+  version: ${{ version }}
+
+source:
+  url: https://github.com/bilt-framework/bilt/archive/refs/tags/${{ version }}.tar.gz
+  sha256: bd5468ccd601e04e1ca75e7636fa341c4e554f4b48778a38e619928753041b5a
+
+build:
+  number: 0
+  skip: not (match(python, python_min ~ ".*") and is_abi3)
+  python:
+    version_independent: true
+  script:
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - if: target_platform == "osx-arm64"
+      then:
+        - export MATURIN_PEP517_ARGS="--target aarch64-apple-darwin --locked"
+      else:
+        - if: win
+          then:
+            - set "MATURIN_PEP517_ARGS=--locked"
+          else:
+            - export MATURIN_PEP517_ARGS="--locked"
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - rust >=1.99
+    - cargo-bundle-licenses
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.15,<2
+  host:
+    - python
+    - python-abi3
+    - pip
+    - maturin >=1.15,<2
+  run:
+    - python >=${{ python_min }}
+    - networkx >=3.6.1
+    - numpy >=2.5.2
+    - rustworkx >=0.18.0
+  run_constraints:
+    - jax >=0.10.2
+
+tests:
+  - python:
+      imports:
+        - bilt
+        - bilt._native
+      pip_check: true
+      python_version: ["${{ python_min ~ '.*' }}"]
+  - script:
+      - bilt --help
+      - python smoke_test.py
+    files:
+      recipe:
+        - smoke_test.py
+
+about:
+  homepage: https://bilt-framework.github.io/bilt/
+  repository: https://github.com/bilt-framework/bilt
+  documentation: https://bilt-framework.github.io/bilt/
+  summary: Causal and acausal systems models in Python.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - j-emberton
