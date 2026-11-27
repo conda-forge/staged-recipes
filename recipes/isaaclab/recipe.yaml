@@ -21,8 +21,8 @@ source:
 build:
   noarch: python
   number: ${{ build_number }}
-  # The build script is POSIX shell, so the
-  # single noarch build only runs on the linux CI agent.
+  # The build script is POSIX shell and the final feedstock only has linux runners.
+  # So the single noarch build runs on the linux CI agent only.
   skip:
     - osx
     - win
@@ -67,25 +67,25 @@ outputs:
           done
         # Co-locate the runtime resources inside the flat package, so
         # isaaclab/_paths.py::ISAACLAB_ROOT resolves them.
-        - cp -r apps "${SP_DIR}/isaaclab/apps"
+        - cp -r apps "${{ SP_DIR }}/isaaclab/apps"
         # apps/ ships no __init__.py, so make each directory importable.
-        - find "${SP_DIR}/isaaclab/apps" -type d -exec touch {}/__init__.py \;
-        - mkdir -p "${SP_DIR}/isaaclab/tools"
-        - cp -r tools/template "${SP_DIR}/isaaclab/tools/template"
+        - find "${{ SP_DIR }}/isaaclab/apps" -type d -exec touch {}/__init__.py \;
+        - mkdir -p "${{ SP_DIR }}/isaaclab/tools"
+        - cp -r tools/template "${{ SP_DIR }}/isaaclab/tools/template"
         # Backs the `isaaclab demo` and `isaaclab example` catalogs (isaaclab/programs.py).
-        - cp -r examples "${SP_DIR}/isaaclab/examples"
+        - cp -r examples "${{ SP_DIR }}/isaaclab/examples"
         # Reinject the third-party deps into the installed metadata (the per-member
         # installs drop them), so the base pip_check validates them against upstream.
         # Names only, since conda-forge serves newer builds. Closed-source deps excluded.
         - ${{ PYTHON }} tools/wheel_builder/gen_pyproject.py pyproject.toml gen_deps.toml "0"
-        - ${{ PYTHON }} "${RECIPE_DIR}/gen_extra_metadata.py" base gen_deps.toml "${SP_DIR}"
+        - ${{ PYTHON }} "${{ RECIPE_DIR }}/gen_extra_metadata.py" base gen_deps.toml "${{ SP_DIR }}"
         # Generate a synthetic dist-info per extra in one pass. Each metapackage
-        # selects its own for pip_check (see gen_extra_metadata.py, README).
+        # selects its own for pip_check (see gen_extra_metadata.py).
         - |
           set -euo pipefail
           for extra in all video wandb sb3 viser rerun mimic tetrahedralization leapp torchrl; do
-            ${{ PYTHON }} "${RECIPE_DIR}/gen_extra_metadata.py" \
-              extra gen_deps.toml pyproject.toml "${SP_DIR}" "$extra" "${{ version }}"
+            ${{ PYTHON }} "${{ RECIPE_DIR }}/gen_extra_metadata.py" \
+              extra gen_deps.toml pyproject.toml "${{ SP_DIR }}" "$extra" "${{ version }}"
           done
     requirements:
       host:
