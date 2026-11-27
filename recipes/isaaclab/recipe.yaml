@@ -183,54 +183,19 @@ outputs:
           - isaaclab play --help
           # Every demo and example script resolves inside the installed package.
           - python -c "from isaaclab.programs import DEMOS, EXAMPLES; missing = [p.relative_path for p in DEMOS + EXAMPLES if not p.path.is_file()]; assert not missing, missing"
-      # Runs upstream's unit suite against the installed package, adapting to the
-      # runner (GPU cases only when a GPU is present). See README.
+      # Runs upstream's unit suite against the installed package.
+      # The script adapts to the runner (GPU, omniverseclient, ovphysx) and is shared with the local pixi verification.
       - script:
-          - set -euo pipefail
-          # omni.client loads only where glibc >= 2.35, so keep it best-effort.
-          # Its absence drops utils/test_assets.py, whose fixture imports it.
-          - python -m pip install --no-deps --no-build-isolation --extra-index-url https://pypi.nvidia.com "omniverseclient==2.74.0" || true
-          - |
-            omni_ok=1
-            if ! python -c "import omni.client" >/dev/null 2>&1; then
-              echo "omni.client not importable, skipping utils/test_assets.py"
-              omni_ok=0
-            fi
-          # Auto-detect a usable GPU: torch.cuda.is_available() is true only with
-          # the driver, a device, and a cuda torch, exactly what the cuda cases need.
-          - |
-            gpu_ok=0
-            if python -c "import torch; raise SystemExit(0 if torch.cuda.is_available() else 1)" >/dev/null 2>&1; then
-              gpu_ok=1
-            fi
-            echo "gpu_ok=${gpu_ok} omni_ok=${omni_ok}"
-          # Collect only the unit-marked files: pointing pytest at test/ would
-          # import scripts that parse args at import.
-          - unit_files=$(grep -rl 'mark\.unit' source/isaaclab/test --include='*.py')
-          # Drop utils/test_assets.py when omni.client did not load.
-          - |
-            if [ "${omni_ok}" = 0 ]; then
-              unit_files=$(printf '%s\n' "${unit_files}" | grep -v -e utils/test_assets.py)
-            fi
-          # A CPU runner hides the device and drops the cuda cases: device-aware
-          # tests keep only cpu, and `-k "not cuda"` catches older cuda-parametrized
-          # ids.
-          - |
-            if [ "${gpu_ok}" = 1 ]; then
-              python -m pytest ${unit_files} -m unit -p no:cacheprovider
-            else
-              export CUDA_VISIBLE_DEVICES=""
-              python -m pytest ${unit_files} -m unit \
-                -k "not cuda" \
-                -p no:cacheprovider
-            fi
+          - bash run_unit_tests.sh .
         requirements:
           run:
-            # Pin to python_min so the omniverseclient wheels (no cp313) resolve.
             - python ${{ python_min }}.*
-            - pip
+            - flaky
             - pytest
+            - pytest-mock
         files:
+          recipe:
+            - run_unit_tests.sh
           source:
             - source/isaaclab/test/
             # Some tests load kernels by relative path, so ship the source tree next to test/.
