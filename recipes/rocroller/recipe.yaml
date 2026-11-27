@@ -1,0 +1,144 @@
+schema_version: 1
+
+context:
+  version: "7.2.4"
+
+recipe:
+  name: rocroller-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ROCm/rocm-libraries/releases/download/rocm-${{ version }}/rocroller.tar.gz
+  sha256: d37e6e468d8a0add2056b947b94b09a96dd6fce665d4f8c3164a0117596b7403
+  patches:
+    - 0001-use-system-tinyxml2.patch
+
+build:
+  number: 0
+  skip:
+    - not linux
+    - hip_compiler_version in (None, "None")
+
+outputs:
+  - staging:
+      name: rocroller-build
+    requirements:
+      build:
+        - ${{ compiler('clang') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('clangxx') }}
+        - ${{ compiler('hip') }}
+        - cmake
+        - ninja
+      host:
+        - rocm-core ${{ version }}.*
+        - rocm-cmake ${{ version }}.*
+        - rocm-comgr ${{ version }}.*
+        - fmt >=11.1.3
+        - spdlog
+        - yaml-cpp >=0.8.0
+        - libdivide-devel
+        - msgpack-cxx
+        - tinyxml2
+        # conda-forge's msgpack-cxx CMake target requires Boost::boost.
+        - libboost-devel
+      ignore_run_exports:
+        from_package:
+          - libboost-devel
+          # Only the build-time GPUArchitectureGenerator links tinyxml2.
+          - tinyxml2
+    build:
+      script: build.sh
+
+  - package:
+      name: librocroller
+    inherit: rocroller-build
+    build:
+      files:
+        include:
+          - "**/*"
+        exclude:
+          - include/**
+          - lib/*.a
+          - lib/cmake/**
+          - lib/pkgconfig/**
+          - share/pkgconfig/**
+          - share/doc/**
+    requirements:
+      ignore_run_exports:
+        from_package:
+          - libboost-devel
+          - tinyxml2
+      run:
+        - rocm-comgr ${{ version }}.*
+
+    tests:
+      - package_contents:
+          files:
+            exists:
+              - lib/librocroller.so.1
+            not_exists:
+              - lib/*.a
+
+  - package:
+      name: librocroller-devel
+    inherit:
+      from: rocroller-build
+      run_exports: false
+    build:
+      files:
+        - include/**
+        - lib/*.a
+        - lib/cmake/**
+        - lib/pkgconfig/**
+        - share/pkgconfig/**
+        - share/doc/**
+    requirements:
+      run:
+        - hip-devel
+        - fmt >=11.1.3
+        - yaml-cpp >=0.8.0
+        - msgpack-cxx
+        - libboost-headers
+        - ${{ pin_subpackage('librocroller', exact=True) }}
+
+      run_exports:
+        - ${{ pin_subpackage('librocroller', upper_bound='x.x') }}
+
+    tests:
+      - requirements:
+          run:
+            - cmake-package-check
+            - ${{ compiler('c') }}
+            - ${{ compiler('cxx') }}
+        script:
+          - cmake-package-check rocroller --targets roc::rocroller roc::rocroller-interface
+      - package_contents:
+          include:
+            - rocRoller/Context.hpp
+      - requirements:
+          run:
+            - cmake
+            - ninja
+            - ${{ compiler('cxx') }}
+        files:
+          recipe:
+            - test-consumer/
+        script:
+          - cmake -S test-consumer -B consumer-build -G Ninja ${CMAKE_ARGS}
+          - cmake --build consumer-build
+          - ./consumer-build/rocroller-smoke
+
+about:
+  homepage: https://github.com/ROCm/rocm-libraries
+  repository: https://github.com/ROCm/rocm-libraries
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE.md
+  summary: "A library for generating AMDGPU kernels"
+
+extra:
+  feedstock-name: rocroller
+  recipe-maintainers:
+    - flferretti
+    - conda-forge/rocm-core
