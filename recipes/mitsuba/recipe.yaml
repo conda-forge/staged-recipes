@@ -1,0 +1,126 @@
+schema_version: 1
+
+context:
+  version: "3.9.1"
+  drjit_version: "1.5.0"
+  build_number: 0
+  build_prefix: ${{ "cuda129_" if target_platform == "linux-64" else "cpu_" }}
+
+package:
+  name: mitsuba
+  version: ${{ version }}
+
+# The GitHub release archive does not contain the recursive submodules that
+# Mitsuba's build requires. Pin the release tag and let the source fetcher
+# check out the exact submodule revisions recorded by upstream. This commit is
+# the peeled target of the v3.9.1 release tag.
+source:
+  git: https://github.com/mitsuba-renderer/mitsuba3.git
+  rev: 478e193a183c21723f4a8251afc3ad29a8da4c5e
+  patches:
+    # Remove once upstream supports a distribution build with external
+    # dependencies and does not install their vendored source trees.
+    - 0001-use-system-libraries.patch
+    # Remove after upstream guards the bundled Dr.Jit copy target when a
+    # scikit-build distribution uses an already-installed Dr.Jit package.
+    - 0002-fix-external-drjit-windows-stubs.patch
+
+build:
+  number: ${{ build_number }}
+  string: ${{ build_prefix }}py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
+  python:
+    # Let rattler-build replace pip's non-relocatable Windows launcher.
+    entry_points:
+      - mitsuba = mitsuba.cli:_main
+  skip:
+    # Dr.Jit's Python bindings do not support PPC64LE.
+    - ppc64le
+    # Dr.Jit's current osx-arm64 packages require macOS 15, while conda-forge
+    # recipes target macOS 11 on that platform.
+    - osx and arm64
+    - match(python, "<3.10")
+    - match(python, ">=3.14")
+  script:
+    - if: win
+      then: call "%RECIPE_DIR%\build.bat"
+    - if: not win
+      then: bash "${RECIPE_DIR}/build.sh"
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - git
+    - ninja
+  host:
+    - python
+    - pip
+    - scikit-build-core
+    - hatch-fancy-pypi-readme
+    - nanobind ==2.14.0
+    # Select the semantic Dr.Jit flavor explicitly. CUDA 12.9 keeps the
+    # broadly compatible glibc 2.17 baseline on Linux.
+    - if: target_platform == "linux-64"
+      then: drjit ==${{ drjit_version }} cuda129_py*
+    - if: target_platform != "linux-64"
+      then: drjit ==${{ drjit_version }} cpu_py*
+    - embree 3.13.*
+    - fast_float
+    - libjpeg-turbo >=3.1
+    - libpng
+    - openexr >=3
+    - pugixml
+    - typing_extensions >=4.12
+    - zlib
+  run:
+    - python
+    - python_abi * *_cp${{ python | version_to_buildstring }}
+    # CPU, CUDA, and Metal Dr.Jit packages share a version but expose different
+    # shared-library surfaces, so retain the exact host variant at runtime.
+    - ${{ pin_compatible("drjit", exact=True) }}
+    - if: match(python, "<3.11")
+      then: typing_extensions >=4.12
+
+tests:
+  - python:
+      imports:
+        - mitsuba
+      pip_check: true
+  - files:
+      recipe:
+        - run_test.py
+    requirements:
+      run:
+        - python
+    script:
+      - python run_test.py
+      - mitsuba --help
+
+about:
+  homepage: https://www.mitsuba-renderer.org/
+  repository: https://github.com/mitsuba-renderer/mitsuba3
+  documentation: https://mitsuba.readthedocs.io/
+  summary: A retargetable forward and inverse renderer
+  description: |
+    Mitsuba 3 is a research-oriented rendering system for forward and inverse
+    light-transport simulation. It is built on Dr.Jit and supports scalar,
+    LLVM, CUDA, and Metal execution variants where available.
+  license: BSD-3-Clause AND BSL-1.0 AND MIT
+  license_file:
+    - LICENSE
+    # Components still compiled from Mitsuba's pinned source tree.
+    - ext/tinyformat/tinyformat.h
+    - ext/drjit/LICENSE
+    - ext/drjit/ext/drjit-core/LICENSE
+    - ext/drjit/ext/drjit-core/ext/nanothread/LICENSE
+    - ext/nanobind/ext/robin_map/LICENSE
+    - ext/struct-jit/LICENSE
+    - ext/struct-jit/ext/nanobind/ext/robin_map/LICENSE
+    - ext/rgb2spec/LICENSE
+    - resources/data/sunsky/output/LICENSE
+
+extra:
+  recipe-maintainers:
+    - jeongseok-meta

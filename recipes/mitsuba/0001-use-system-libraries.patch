@@ -1,0 +1,269 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 3d3c5da..554e320 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -103,6 +103,28 @@ if (SKBUILD)
+ 
+   list(APPEND CMAKE_PREFIX_PATH "${MI_DRJIT_CMAKE_DIR}")
+   find_package(drjit CONFIG REQUIRED)
++
++  # Distribution builds should reuse packaged dependencies instead of
++  # compiling the copies in ext/. This also lets the package manager track
++  # ABI transitions and security updates.
++  find_package(ZLIB REQUIRED)
++  find_package(PNG REQUIRED)
++  find_package(libjpeg-turbo CONFIG REQUIRED)
++  find_package(OpenEXR 3 CONFIG REQUIRED)
++  find_package(pugixml CONFIG REQUIRED)
++  find_package(FastFloat CONFIG REQUIRED)
++  if (MI_ENABLE_EMBREE)
++    find_package(embree 3 CONFIG REQUIRED)
++    add_definitions(-DMI_USE_SYSTEM_EMBREE=1)
++  endif()
++
++  set(ZLIB_LIBRARY ZLIB::ZLIB)
++  set(PNG_LIBRARIES PNG::PNG)
++  set(JPEG_LIBRARIES libjpeg-turbo::jpeg)
++  add_library(IlmImf INTERFACE)
++  target_link_libraries(IlmImf INTERFACE OpenEXR::OpenEXR)
++  add_library(fast_float INTERFACE)
++  target_link_libraries(fast_float INTERFACE FastFloat::fast_float)
+ endif()
+ 
+ # ----------------------------------------------------------
+@@ -494,19 +516,23 @@ if (MI_COPIED_CONFIG_FILE AND NOT SKBUILD)
+ endif()
+ 
+ # Installation targets
+-set(MI_DEPEND
+-  IlmImf IlmThread Imath Iex IexMath Half pugixml
+-)
++set(MI_DEPEND)
++
++if (NOT SKBUILD)
++  list(APPEND MI_DEPEND IlmImf IlmThread Imath Iex IexMath Half)
++endif()
+ 
+ list(APPEND MI_DEPEND struct-jit)
+ 
+-list(APPEND MI_DEPEND png jpeg)
++if (NOT SKBUILD)
++  list(APPEND MI_DEPEND pugixml png jpeg)
++endif()
+ 
+-if (WIN32)
++if (WIN32 AND NOT SKBUILD)
+   list(APPEND MI_DEPEND zlib)
+ endif()
+ 
+-if (MI_ENABLE_EMBREE)
++if (MI_ENABLE_EMBREE AND NOT SKBUILD)
+   list(APPEND MI_DEPEND embree)
+ endif()
+ 
+diff --git a/ext/CMakeLists.txt b/ext/CMakeLists.txt
+index 63132cd..baa37d0 100644
+--- a/ext/CMakeLists.txt
++++ b/ext/CMakeLists.txt
+@@ -22,11 +22,12 @@ if (MSVC)
+   enable_language(ASM_MASM)
+ endif()
+ 
+-# NASM for libjpeg-turbo (x86, if available). Enabled last so it wins the
+-# ``.asm`` extension, shared by all dialects.
+-check_language(ASM_NASM)
+-if (CMAKE_ASM_NASM_COMPILER)
+-  enable_language(ASM_NASM)
++# NASM is only needed by the bundled libjpeg-turbo build.
++if (NOT SKBUILD)
++  check_language(ASM_NASM)
++  if (CMAKE_ASM_NASM_COMPILER)
++    enable_language(ASM_NASM)
++  endif()
+ endif()
+ 
+ # ---------------------------------------------------------------------------
+@@ -94,7 +95,7 @@ mark_as_advanced(
+ #  Compile Intel Embree (optional)
+ # ----------------------------------------------------------
+ 
+-if (MI_ENABLE_EMBREE)
++if (MI_ENABLE_EMBREE AND NOT SKBUILD)
+   set_directory_properties(PROPERTIES COMPILE_OPTIONS "")
+ 
+   set(EMBREE_ISPC_SUPPORT              OFF CACHE BOOL " " FORCE)
+@@ -185,7 +186,7 @@ mark_as_advanced(FORCE EMBREE_ADDRESS_SANITIZER EMBREE_API_NAMESPACE
+ # ----------------------------------------------------------
+ 
+ set_directory_properties(PROPERTIES COMPILE_OPTIONS "${MI_EXT_COMPILE_OPTIONS_NOWARN}")
+-if (WIN32)
++if (WIN32 AND NOT SKBUILD)
+   set(ZLIB_BUILD_STATIC_LIBS OFF CACHE BOOL " " FORCE)
+   set(ZLIB_BUILD_SHARED_LIBS ON  CACHE BOOL " " FORCE)
+   add_subdirectory(zlib)
+@@ -213,6 +214,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU"
+   add_compile_options(-Wno-unused-parameter -Wno-unused-but-set-variable -Wno-sign-compare)
+ endif()
+ 
++if (NOT SKBUILD)
+ # Prevents openexr to set the DEBUG_POSTFIX "_d"
+ set(CMAKE_DEBUG_POSTFIX "" CACHE STRING " " FORCE)
+ set(ILMBASE_LIB_SUFFIX  "" CACHE STRING "" FORCE)
+@@ -258,6 +260,7 @@ set(OPENEXR_INCLUDE_DIRS
+   ${CMAKE_CURRENT_BINARY_DIR}/openexr/OpenEXR/config
+   ${CMAKE_CURRENT_BINARY_DIR}/openexr/IlmBase/config
+   PARENT_SCOPE)
++endif()
+ 
+ mark_as_advanced(
+   ILMBASE_BUILD_BOTH_STATIC_SHARED ILMBASE_ENABLE_LARGE_STACK
+@@ -281,6 +284,7 @@ mark_as_advanced(
+ #  libpng
+ # ----------------------------------------------------------
+ 
++if (NOT SKBUILD)
+ set(PNG_SHARED ON CACHE BOOL " " FORCE)
+ set(PNG_STATIC OFF CACHE BOOL " " FORCE)
+ set(PNG_TESTS OFF CACHE BOOL " " FORCE)
+@@ -294,7 +298,8 @@ set_property(TARGET png PROPERTY OUTPUT_NAME "png-mitsuba")
+ 
+ set(PNG_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/libpng;${CMAKE_CURRENT_BINARY_DIR}/libpng" PARENT_SCOPE)
+ set(PNG_LIBRARIES    "png" PARENT_SCOPE)
+-set(PNG_DEFINES      -DMI_HAS_LIBPNG PARENT_SCOPE)
++endif()
++set(PNG_DEFINES -DMI_HAS_LIBPNG PARENT_SCOPE)
+ 
+ mark_as_advanced(DFA_XTRA AWK PNG_FRAMEWORK PNG_HARDWARE_OPTIMIZATIONS
+   PNG_PREFIX PNG_SHARED PNG_STATIC PNG_TESTS PNG_BUILD_ZLIB PNG_DEBUG
+@@ -307,6 +312,7 @@ mark_as_advanced(DFA_XTRA AWK PNG_FRAMEWORK PNG_HARDWARE_OPTIMIZATIONS
+ 
+ # Build only the shared libjpeg-API library: no static lib, no high-level
+ # TurboJPEG API, and no command-line tools / regression tests.
++if (NOT SKBUILD)
+ set(ENABLE_SHARED   ON  CACHE BOOL " " FORCE)
+ set(ENABLE_STATIC   OFF CACHE BOOL " " FORCE)
+ set(WITH_TURBOJPEG  OFF CACHE BOOL " " FORCE)
+@@ -317,7 +323,6 @@ set_property(TARGET jpeg PROPERTY FOLDER "dependencies")
+ # Public headers live in src/; the generated jconfig.h lands in the build dir.
+ set(JPEG_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/libjpeg-turbo/src;${CMAKE_CURRENT_BINARY_DIR}/libjpeg-turbo" PARENT_SCOPE)
+ set(JPEG_LIBRARIES    "jpeg" PARENT_SCOPE)
+-set(JPEG_DEFINES      -DMI_HAS_LIBJPEG PARENT_SCOPE)
+ 
+ # Give libpng & libjpeg a name that's guaranteeed not to match other
+ # libraries that may already be loaded (e.g. into a Python interpreter)
+@@ -326,6 +331,8 @@ set_property(TARGET jpeg PROPERTY OUTPUT_NAME "jpeg-mitsuba")
+ # Write output to libjpeg-mitsuba.dylib (no version suffix or symlink)
+ set_property(TARGET jpeg PROPERTY VERSION)
+ set_property(TARGET jpeg PROPERTY SOVERSION)
++endif()
++set(JPEG_DEFINES -DMI_HAS_LIBJPEG PARENT_SCOPE)
+ 
+ mark_as_advanced(
+   ENABLE_SHARED
+@@ -338,6 +345,7 @@ mark_as_advanced(
+ #  pugixml XML parser
+ # ----------------------------------------------------------
+ 
++if (NOT SKBUILD)
+ add_library(pugixml SHARED pugixml/src/pugixml.cpp)
+ set_property(TARGET pugixml PROPERTY
+   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/pugixml")
+@@ -345,6 +353,7 @@ set_property(TARGET pugixml PROPERTY FOLDER "dependencies")
+ set(PUGIXML_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/pugixml/src PARENT_SCOPE)
+ target_compile_options(pugixml PRIVATE -DPUGIXML_BUILD_DLL)
+ target_compile_features(pugixml PUBLIC cxx_std_17)
++endif()
+ 
+ # tinyformat include path
+ set(TINYFORMAT_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/tinyformat PARENT_SCOPE)
+@@ -385,7 +394,9 @@ endif()
+ #  Fast floating point parser (interface library)
+ # ----------------------------------------------------------
+ 
+-add_subdirectory(fastfloat EXCLUDE_FROM_ALL)
++if (NOT SKBUILD)
++  add_subdirectory(fastfloat EXCLUDE_FROM_ALL)
++endif()
+ mark_as_advanced(
+   FASTFLOAT_SANITIZE
+   FASTFLOAT_TEST
+diff --git a/include/mitsuba/core/fwd.h b/include/mitsuba/core/fwd.h
+index c2b8603..f932c69 100644
+--- a/include/mitsuba/core/fwd.h
++++ b/include/mitsuba/core/fwd.h
+@@ -10,6 +10,10 @@
+ #include <drjit/if_stmt.h>
+ #include <vector>
+ 
++#if defined(MI_ENABLE_EMBREE) && defined(MI_USE_SYSTEM_EMBREE)
++#  include <embree3/rtcore.h>
++#endif
++
+ NAMESPACE_BEGIN(mitsuba)
+ 
+ /// Define Dr.Jit namespace alias
+@@ -333,6 +337,11 @@ NAMESPACE_END(filesystem)
+ namespace fs = filesystem;
+ 
+ #if defined(MI_ENABLE_EMBREE)
++#  if defined(MI_USE_SYSTEM_EMBREE)
++using RTCDevice = ::RTCDevice;
++using RTCScene = ::RTCScene;
++using RTCGeometry = ::RTCGeometry;
++#  else
+ extern "C" {
+     // Forward declarations for Embree (we import Embree into mitsuba's namespace
+     // to avoid name clashes with other libraries).
+@@ -340,6 +349,7 @@ extern "C" {
+     typedef struct RTCSceneTy* RTCScene;
+     typedef struct RTCGeometryTy* RTCGeometry;
+ }
++#  endif
+ #endif
+ 
+ NAMESPACE_END(mitsuba)
+diff --git a/src/core/bitmap.cpp b/src/core/bitmap.cpp
+index 9526669..f107c37 100644
+--- a/src/core/bitmap.cpp
++++ b/src/core/bitmap.cpp
+@@ -11,6 +11,7 @@
+ #include <algorithm>
+ #include <atomic>
+ #include <cmath>
++#include <cstdint>
+ #include <string>
+ #include <thread>
+ 
+@@ -41,6 +42,7 @@ extern "C" {
+ #endif
+ 
+ #include <ImfInputFile.h>
++#include <ImfFrameBuffer.h>
+ #include <ImfStandardAttributes.h>
+ #include <ImfRgbaYca.h>
+ #include <ImfOutputFile.h>
+@@ -925,11 +927,11 @@ public:
+         return m_stream->tell() == m_size;
+     }
+ 
+-    Imf::Int64 tellg() override {
++    uint64_t tellg() override {
+         return m_stream->tell()-m_offset;
+     }
+ 
+-    void seekg(Imf::Int64 pos) override {
++    void seekg(uint64_t pos) override {
+         m_stream->seek((size_t) pos + m_offset);
+     }
+ 
+@@ -945,8 +947,8 @@ public:
+         m_stream(stream) { }
+ 
+     void write(const char *c, int n) override { m_stream->write(c, n); }
+-    Imf::Int64 tellp() override { return m_stream->tell(); }
+-    void seekp(Imf::Int64 pos) override { m_stream->seek((size_t) pos); }
++    uint64_t tellp() override { return m_stream->tell(); }
++    void seekp(uint64_t pos) override { m_stream->seek((size_t) pos); }
+ private:
+     ref<Stream> m_stream;
+ };
