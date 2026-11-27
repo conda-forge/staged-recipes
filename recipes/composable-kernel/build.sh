@@ -4,9 +4,15 @@ set -euo pipefail
 mkdir -p build
 cd build
 
+# Temporarily build only a single architecture (gfx10-3-generic) in staged-recipes
+# so CI stays within standard runner time/memory limits. Remove this override in
+# the feedstock once larger runners (e.g. depot.dev) are configured.
+CONDA_FORGE_DEFAULT_ROCM_GPU_TARGETS="gfx10-3-generic"
+
 # gfx1150/gfx1151 (RDNA 3.5) use the WMMA pipeline, so DL and DPP kernel
 # instances are unnecessary paths.
 EXTRA_CMAKE_ARGS=()
+BUILD_TARGETS=()
 ONLY_RDNA35=true
 IFS=';' read -ra TARGETS <<< "${CONDA_FORGE_DEFAULT_ROCM_GPU_TARGETS}"
 for target in "${TARGETS[@]}"; do
@@ -21,6 +27,10 @@ if [[ "$ONLY_RDNA35" == "true" ]]; then
     CK_ACTUALLY_USED_GPU_ARCHS=${CONDA_FORGE_DEFAULT_ROCM_GPU_TARGETS}
 else
     EXTRA_CMAKE_ARGS=("-DMIOPEN_REQ_LIBS_ONLY:BOOL=ON" "-DHIPTENSOR_REQ_LIBS_ONLY:BOOL=ON")
+    # With MIOPEN_REQ_LIBS_ONLY=ON, only device_conv_operations and utility are
+    # linked/installed; targeting them avoids compiling unused OBJECT libraries
+    # (such as device_quantization_instance) that consume >10 GiB RAM per TU.
+    BUILD_TARGETS=("--target" "device_conv_operations" "--target" "utility")
     # To keep the compilation time and memory usage down, we prefer to use the generic target
     # used by default in composable-kernel, i.e. in 7.2.3 : gfx10-3-generic;gfx11-generic;gfx12-generic
     # see https://github.com/ROCm/rocm-libraries/blob/rocm-7.2.3/projects/composablekernel/CMakeLists.txt#L203C29-L203C100
@@ -92,5 +102,5 @@ cmake -GNinja \
     "${EXTRA_CMAKE_ARGS[@]}" \
     ..
 
-cmake --build . --parallel "${NUMBER_OF_THREADS}"
+cmake --build . "${BUILD_TARGETS[@]}" --parallel "${NUMBER_OF_THREADS}"
 cmake --install .
