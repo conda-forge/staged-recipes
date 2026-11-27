@@ -1,6 +1,6 @@
 # Updating the `isaaclab` recipe (for agents and maintainers)
 
-Maintainer aid, see `README.pr-notes.md`.
+Maintainer aid that stays in the feedstock together with `pixi.toml`.
 The skill `contributing-to-conda-forge` covers the general conda-forge flow.
 
 ## Update flow
