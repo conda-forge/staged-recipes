@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.25)
+project(rocroller_consumer LANGUAGES CXX)
+find_package(rocroller CONFIG REQUIRED)
+add_executable(rocroller-smoke main.cpp)
+target_link_libraries(rocroller-smoke PRIVATE roc::rocroller)
