@@ -1,0 +1,116 @@
+schema_version: 1
+
+context:
+  name: bos
+  version: "0.3.0"
+  findlib_version: "1.9.8"
+
+  library: ${{ "Library/" if not unix else "" }}
+  # ocaml matchspec tail: version, plus the gcc_ (MinGW) track on non-unix
+  ocaml_spec: ${{ ocaml_compiler_version ~ (".*" if unix else ".* gcc_*") }}
+
+package:
+  name: ocaml-${{ name }}
+  version: ${{ version }}
+
+source:
+  # findlib is built privately on all platforms (never installed): the cf ocaml-findlib build is stale
+  - url: https://github.com/ocaml/ocamlfind/archive/refs/tags/findlib-${{ findlib_version }}.tar.gz
+    sha256: d6899935ccabf67f067a9af3f3f88d94e310075d13c648fa03ff498769ce039d
+    target_directory: findlib
+  - url: https://erratique.ch/software/${{ name }}/releases/${{ name }}-${{ version }}.tbz
+    sha256: 089f369ed00967e92d89cc5fcd848c56bdab5c02737da4d483550bf56b5a79bc
+    target_directory: ${{ name }}
+
+build:
+  number: 0
+  script: bash ${{ RECIPE_DIR }}/build.sh
+  # python is build-only; avoid per-python variants
+  variant:
+    ignore_keys:
+      - python
+
+requirements:
+  build:
+    - if: unix
+      then:
+        - ${{ compiler("c") }}
+        - ${{ stdlib("c") }}
+      else:
+        - ${{ compiler("m2w64_c") }}
+        - ${{ stdlib("m2w64_c") }}
+    - ${{ compiler("ocaml") }}
+    # compiler("ocaml") renders no toolchain track; name the gcc_ (MinGW) one on non-unix
+    - ocaml_${{ target_platform }} ${{ ocaml_spec }}
+    # ocaml pin selects a build that ships ocamlbuild.cmo (_2 did not)
+    - ocamlbuild 0.16.*
+    - python
+    - if: unix
+      then:
+        - make
+      else:
+        - m2-make
+        - m2-bash
+        - m2-coreutils
+        - m2-findutils
+        - m2-grep
+        - m2-sed
+  host:
+    - ocaml ${{ ocaml_spec }}
+    - ocaml-topkg >=1.1.1
+    - ocaml-rresult >=0.7.0
+    - ocaml-astring >=0.8.5
+    - ocaml-fpath >=0.7.3
+    - ocaml-fmt >=0.11.0
+    - ocaml-logs >=0.10.0
+  run:
+    - ocaml ${{ ocaml_spec }}
+    - ocaml-topkg >=1.1.1
+    - ocaml-rresult >=0.7.0
+    - ocaml-astring >=0.8.5
+    - ocaml-fpath >=0.7.3
+    - ocaml-fmt >=0.11.0
+    - ocaml-logs >=0.10.0
+
+tests:
+  - package_contents:
+      files:
+        - ${{ library }}lib/ocaml/${{ name }}/META
+        - ${{ library }}lib/ocaml/${{ name }}/${{ name }}.cma
+        - ${{ library }}lib/ocaml/${{ name }}/${{ name }}.cmxa
+        - ${{ library }}lib/ocaml/${{ name }}/*.cmi
+  - script:
+      interpreter: bash
+      content:
+        - export DUNE_CACHE=disabled
+        - LIBDIR=$PREFIX/lib/ocaml; SEP=':'
+        - if [[ -d $PREFIX/Library/lib/ocaml ]]; then LIBDIR=$PREFIX/Library/lib/ocaml; SEP=';'; fi
+        - export OCAMLPATH="$LIBDIR${OCAMLPATH:+$SEP$OCAMLPATH}"
+        - echo '(lang dune 3.0)' > dune-project
+        - echo '(executable (name t) (libraries astring rresult fpath fmt logs ${{ name }}) (link_flags (-linkall)))' > dune
+        - echo 'let () = ()' > t.ml
+        - dune build --root . ./t.exe
+        - ./_build/default/t.exe
+    requirements:
+      run:
+        - ocaml ${{ ocaml_spec }}
+        - ocaml-dune >=3.11
+        - if: unix
+          then:
+            - ${{ compiler("c") }}
+        - if: not unix
+          then:
+            - m2-bash
+            - m2-coreutils
+
+about:
+  homepage: https://erratique.ch/software/bos
+  repository: https://github.com/dbuenzli/bos
+  license: ISC
+  license_file: bos/LICENSE.md
+  summary: Basic OS interaction for OCaml
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+    - ManuelLerchner
