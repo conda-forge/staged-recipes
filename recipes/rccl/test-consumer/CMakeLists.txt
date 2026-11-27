@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.16)
+project(rccl_consumer LANGUAGES CXX)
+find_package(rccl CONFIG REQUIRED)
+add_executable(rccl_consumer main.cpp)
+target_link_libraries(rccl_consumer PRIVATE roc::rccl)
+enable_testing()
+add_test(NAME rccl_version COMMAND rccl_consumer)

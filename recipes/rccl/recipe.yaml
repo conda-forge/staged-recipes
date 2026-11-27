@@ -1,0 +1,161 @@
+schema_version: 1
+
+context:
+  version: "7.2.4"
+  # Keep the versionless .so in the runtime package for dlopen users.
+  devel_files: "{include/**,lib/cmake/**,lib/pkgconfig/**,share/pkgconfig/**}"
+
+recipe:
+  name: rccl-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ROCm/rccl/archive/refs/tags/rocm-${{ version }}.tar.gz
+  sha256: e8927c61f76e70801e660a3482d383b30159d6f2a9e0580e5cdf168f2503e8c7
+  patches:
+    - patches/0001-backport-gfx115x-build-fixes.patch
+    - patches/0002-fix-bitops-decode-test.patch
+
+build:
+  number: 0
+  skip:
+    - not linux
+    - hip_compiler_version in (None, "None")
+
+outputs:
+  - staging:
+      name: rccl-build
+    build:
+      script: build.sh
+    requirements:
+      build:
+        - ${{ compiler('clang') }}
+        - ${{ compiler('clangxx') }}
+        - ${{ compiler('hip') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - python >=3.10
+        - hipify
+      host:
+        - rocm-core ${{ version }}.*
+        - rocm-cmake
+        - hip-devel
+        - rocr-runtime
+        - rocm-smi
+        - fmt >=10.2.1
+      ignore_run_exports:
+        from_package:
+          - fmt
+
+  - package:
+      name: librccl
+    inherit: rccl-build
+    build:
+      files:
+        include:
+          - "**"
+        exclude:
+          - "${{ devel_files }}"
+      dynamic_linking:
+        overlinking_behavior: error
+    requirements:
+      run:
+        - rocr-runtime
+    tests:
+      - package_contents:
+          files:
+            exists:
+              - lib/librccl.so
+              - lib/librccl.so.1*
+              - share/rccl/msccl-algorithms/**
+            not_exists:
+              - "${{ devel_files }}"
+              - lib/*.a
+      - requirements:
+          run:
+            - python
+        script:
+          - python test_runtime.py
+        files:
+          recipe:
+            - test_runtime.py
+
+  - package:
+      name: librccl-devel
+    inherit:
+      from: rccl-build
+      run_exports: false
+    build:
+      files:
+        - "${{ devel_files }}"
+    requirements:
+      run:
+        - hip-devel
+        - ${{ pin_subpackage('librccl', exact=True) }}
+      run_exports:
+        # Conservatively keep downstream consumers within this ROCm minor series.
+        - ${{ pin_subpackage('librccl', upper_bound='x.x') }}
+    tests:
+      - package_contents:
+          include:
+            - rccl/rccl.h
+            - rccl/nccl_net.h
+          files:
+            exists:
+              - lib/cmake/rccl/rccl-config.cmake
+            not_exists:
+              - lib/librccl.so*
+              - lib/*.a
+              - share/rccl/**
+      - requirements:
+          run:
+            - cmake-package-check
+            - ${{ compiler('cxx') }}
+            - cmake
+            - ninja
+            - gtest
+        files:
+          recipe:
+            - test-consumer/
+            - test-upstream/
+          source:
+            - test/BitOpsTests.cpp
+            - src/include/bitops.h
+        script:
+          - cmake-package-check rccl --targets roc::rccl
+          - cmake -S test-consumer -B consumer-build -G Ninja ${CMAKE_ARGS}
+          - cmake --build consumer-build
+          - ctest --test-dir consumer-build --output-on-failure
+          - cmake -S test-upstream -B upstream-build -G Ninja ${CMAKE_ARGS}
+          - cmake --build upstream-build
+          - ctest --test-dir upstream-build --output-on-failure
+
+about:
+  homepage: https://rocm.docs.amd.com/projects/rccl/en/latest/
+  repository: https://github.com/ROCm/rccl
+  license: BSD-3-Clause AND MIT AND (Apache-2.0 WITH LLVM-exception)
+  license_file:
+    - LICENSE.txt
+    - NOTICES.txt
+    # Preserve the MIT license text and AMD copyright notice embedded in
+    # this header for RCCL's device pointer helpers.
+    - src/device/rccl_ptr.h
+    # Preserve this header's MIT license text and AMD/GigaIO copyright
+    # notices for RCCL's Rome topology model code.
+    - src/graph/rome_models.h
+    # RCCL bundles src/include/nvtx3 headers, but NOTICES.txt only links to
+    # NVTX rather than including its full Apache-2.0 WITH LLVM-exception text.
+    # Supply that text here for the bundled headers used during compilation.
+    # Source: https://github.com/NVIDIA/NVTX/blob/v3.1.0/LICENSE.txt
+    - NVTX-LICENSE.txt
+  summary: ROCm Communication Collectives Library
+  description: |
+    RCCL implements collective communication routines for AMD GPUs, including
+    all-reduce, all-gather, reduce, broadcast, reduce-scatter, gather, scatter,
+    and all-to-all, using PCIe, xGMI, InfiniBand Verbs, or TCP/IP sockets.
+
+extra:
+  feedstock-name: rccl
+  recipe-maintainers:
+    - traversaro
