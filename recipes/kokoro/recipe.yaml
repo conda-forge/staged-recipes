@@ -1,0 +1,76 @@
+context:
+  version: "0.9.4"
+
+package:
+  name: kokoro
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/k/kokoro/kokoro-${{ version }}.tar.gz
+  sha256: fbf633262797f8cf46fdac3315cf9cade67dc8b762c0feccf334892772fb9ac4
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - kokoro = kokoro.__main__:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - hatchling
+    - pip
+  run:
+    - python >=${{ python_min }},<3.13
+    # kokoro/custom_stft.py imports `attr` but upstream does not declare it
+    - attrs
+    - huggingface_hub
+    - loguru
+    - misaki >=0.9.4
+    - numpy
+    - pytorch
+    - transformers
+    # misaki[en]: conda-forge's misaki only ships the base dependencies
+    - espeakng-loader
+    - num2words
+    - phonemizer-fork
+    - spacy
+    - spacy-curated-transformers
+    # misaki's English G2P downloads en_core_web_sm at runtime if it is missing
+    - spacy-model-en_core_web_sm
+    # conda-forge srsly >=2.5.3 (unvendored msgpack) dropped the `@srsly.msgpack_encoders(name)`
+    # decorator that spacy-curated-transformers uses, which makes every spacy.load() fail
+    - srsly <2.5.3
+
+tests:
+  - python:
+      imports:
+        - kokoro
+      python_version: ${{ python_min }}.*
+  - script:
+      - kokoro --help
+      - python -c "from misaki import en, espeak; espeak.EspeakFallback(british=False)"
+      - python test_g2p.py
+    files:
+      recipe:
+        - test_g2p.py
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+
+about:
+  homepage: https://github.com/hexgrad/kokoro
+  summary: Inference library for Kokoro-82M, an open-weight text-to-speech model
+  description: |
+    Kokoro is an open-weight TTS model with 82 million parameters. This package
+    contains the kokoro inference library (KModel, KPipeline) and command line
+    tool. Model weights and voices are downloaded from Hugging Face at runtime.
+  license: Apache-2.0
+  license_file: LICENSE
+  repository: https://github.com/hexgrad/kokoro
+
+extra:
+  recipe-maintainers:
+    - pavelzw

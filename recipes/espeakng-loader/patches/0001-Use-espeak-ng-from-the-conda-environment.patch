@@ -1,0 +1,75 @@
+From feb0e4d490f5cdc6b2e3f1eef46d2a40848f1bd0 Mon Sep 17 00:00:00 2001
+From: Pavel Zwerschke <pavelzw@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 15:26:27 +0100
+Subject: [PATCH] Use espeak-ng from the conda environment
+
+Upstream wheels bundle their own libespeak-ng and espeak-ng-data. On
+conda-forge both come from the espeak-ng package instead, so point
+get_library_path() and get_data_path() at the library and data directory
+in sys.prefix (Library/ on Windows), and drop the custom hatch hook that
+marks the wheel as platform-specific.
+---
+ pyproject.toml                  |  3 ---
+ src/espeakng_loader/__init__.py | 25 ++++++++++++++++++++-----
+ 2 files changed, 20 insertions(+), 8 deletions(-)
+
+diff --git a/pyproject.toml b/pyproject.toml
+index fa269ee..3fe4e43 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -12,6 +12,3 @@ dependencies = []
+ [build-system]
+ requires = ["hatchling"]
+ build-backend = "hatchling.build"
+-
+-# Run `hatch build` to build the package wth hatch_build.py
+-[tool.hatch.build.targets.wheel.hooks.custom]
+\ No newline at end of file
+diff --git a/src/espeakng_loader/__init__.py b/src/espeakng_loader/__init__.py
+index 61dba6e..98f8f84 100644
+--- a/src/espeakng_loader/__init__.py
++++ b/src/espeakng_loader/__init__.py
+@@ -2,14 +2,29 @@ from pathlib import Path
+ import ctypes
+ import platform
+ import os
++import sys
++
++# conda-forge: libespeak-ng and espeak-ng-data come from the `espeak-ng`
++# package in the conda environment instead of being bundled in the wheel.
++_IS_WINDOWS = platform.system() == "Windows"
++_PREFIX = Path(sys.prefix) / "Library" if _IS_WINDOWS else Path(sys.prefix)
++
++
++def _library_dir():
++    return _PREFIX / ("bin" if _IS_WINDOWS else "lib")
++
+ 
+ def get_library_path():
+-    ext = ".dll" if platform.system() == "Windows" else ".so" if platform.system() == "Linux" else ".dylib"
+-    lib_name = "espeak-ng" + ext if platform.system() == "Windows" else 'libespeak-ng' + ext
+-    return str(Path(__file__).parent / lib_name)
++    if _IS_WINDOWS:
++        lib_name = "espeak-ng.dll"
++    elif platform.system() == "Darwin":
++        lib_name = "libespeak-ng.1.dylib"
++    else:
++        lib_name = "libespeak-ng.so.1"
++    return str(_library_dir() / lib_name)
+ 
+ def get_data_path():
+-    data_path = Path(__file__).parent / 'espeak-ng-data'
++    data_path = _PREFIX / 'share' / 'espeak-ng-data'
+     if not data_path.exists():
+         raise RuntimeError(f'data path not exists at {data_path}')
+     return str(data_path)
+@@ -42,4 +57,4 @@ def make_library_available():
+     elif platform.system() == "Darwin":
+         os.environ["DYLD_LIBRARY_PATH"] = lib_dir + ":" + os.environ.get("DYLD_LIBRARY_PATH", "")
+     else:
+-        raise Exception(f"Unsupported platform: {platform.system()}")
+\ No newline at end of file
++        raise Exception(f"Unsupported platform: {platform.system()}")
+-- 
+2.56.1
+

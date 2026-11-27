@@ -1,0 +1,45 @@
+From 250aecfe7e1eab9a04f2009d540796d076da5a77 Mon Sep 17 00:00:00 2001
+From: Pavel Zwerschke <pavelzw@users.noreply.github.com>
+Date: Wed, 25 Nov 2026 15:22:34 +0100
+Subject: [PATCH] Find espeak-ng-data relative to the DLL on Windows
+
+On Windows the data directory defaults to the install prefix that was
+compiled into the library, which is wrong for relocatable installs such
+as conda environments. Before falling back to that path, look for
+espeak-ng-data in ..\share next to the directory that holds the DLL.
+---
+ src/libespeak-ng/speech.c | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/src/libespeak-ng/speech.c b/src/libespeak-ng/speech.c
+index 9f90d10..53ccb33 100644
+--- a/src/libespeak-ng/speech.c
++++ b/src/libespeak-ng/speech.c
+@@ -327,6 +327,24 @@ ESPEAK_NG_API void espeak_ng_InitializePath(const char *path)
+ 
+ 	if (check_data_path(buf, 1))
+ 		return;
++
++	// Relocatable installs (e.g. conda): look for <dir of this DLL>\..\share\espeak-ng-data
++	{
++		HMODULE module = NULL;
++		char module_path[sizeof(path_home)-32];
++		if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
++		                       (LPCSTR)&espeak_ng_InitializePath, &module)) {
++			DWORD len = GetModuleFileNameA(module, module_path, sizeof(module_path));
++			if (len > 0 && len + sizeof("\\..\\share") < sizeof(module_path)) {
++				char *sep = strrchr(module_path, '\\');
++				if (sep != NULL) {
++					strcpy(sep, "\\..\\share");
++					if (check_data_path(module_path, 0))
++						return;
++				}
++			}
++		}
++	}
+ #elif !defined(PLATFORM_DOS)
+ 	if (check_data_path(getenv("ESPEAK_DATA_PATH"), 1))
+ 		return;
+-- 
+2.56.1
+
