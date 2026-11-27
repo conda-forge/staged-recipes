@@ -1,0 +1,149 @@
+schema_version: 1
+
+context:
+  version: "0.24.2"
+
+package:
+  name: rtabmap
+  version: ${{ version }}
+
+source:
+  url: https://github.com/introlab/rtabmap/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 96cca356c37d50609d7e1bc6379ce0ff3f66ecbd153583669bd0ba23b91ba969
+  patches:
+    - 0001-use-system-lz4-and-sqlite.patch
+    - 0002-exclude-disabled-orb-octree.patch
+    - 0003-scope-vtk-and-pthreads-discovery.patch
+    - 0004-include-winsock2-before-windows.patch
+    - 0005-export-pdal-writer-api.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler("c") }}
+    - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
+    - cmake >=3.14
+    - ninja
+    - pkgconf
+    - if: build_platform != target_platform
+      then: qt6-main
+  host:
+    - apriltag
+    - ceres-solver
+    - eigen
+    - if: linux
+      then:
+        - libgomp
+        - libopengl-devel
+    - if: not win
+      then: libdc1394
+    - libopencv
+    - librealsense
+    - lz4-c
+    - if: osx
+      then: llvm-openmp
+    - octomap
+    - pcl >=1.7
+    - libpdal-core
+    - qt6-main
+    # The source patch makes this required instead of using bundled SQLite.
+    - sqlite
+    - vtk
+    - yaml-cpp
+    - zlib
+  run:
+    - if: linux
+      then: libgomp
+  run_exports:
+    # RTAB-Map's shared-library SOVERSION is major.minor (0.24).
+    - ${{ pin_subpackage("rtabmap", upper_bound="x.x") }}
+
+tests:
+  - package_contents:
+      bin:
+        - if: win
+          then: RTABMap
+          else: rtabmap
+        - rtabmap-console
+        - rtabmap-databaseViewer
+        - rtabmap-euroc_dataset
+        - rtabmap-info
+      include:
+        - rtabmap-0.24/rtabmap/core/Rtabmap.h
+        - rtabmap-0.24/rtabmap/gui/MainWindow.h
+      lib:
+        - rtabmap_core
+        - rtabmap_gui
+        - rtabmap_utilite
+  - script:
+      - if: unix
+        then: test "$(rtabmap-console -v)" = "${{ version }}"
+      - if: win
+        then: rtabmap-console -v | findstr /x "${{ version }}" >NUL || exit /b 1
+  - files:
+      recipe:
+        - run_test.py
+    requirements:
+      run:
+        - python
+    script: python run_test.py
+  - files:
+      recipe:
+        - tests/CMakeLists.txt
+        - tests/core.cpp
+        - tests/gui.cpp
+    requirements:
+      build:
+        - ${{ compiler("cxx") }}
+        - ${{ stdlib("c") }}
+        - cmake >=3.14
+        - ninja
+    script:
+      - if: win
+        then:
+          - cmake %CMAKE_ARGS% -S tests -B tests/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          - cmake --build tests/build --config Release
+          - ctest --test-dir tests/build --output-on-failure --build-config Release
+        else:
+          - cmake ${CMAKE_ARGS} -S tests -B tests/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          - cmake --build tests/build --config Release
+          - ctest --test-dir tests/build --output-on-failure --build-config Release
+
+about:
+  homepage: https://introlab.github.io/rtabmap/
+  repository: https://github.com/introlab/rtabmap
+  documentation: https://github.com/introlab/rtabmap/wiki
+  summary: Real-Time Appearance-Based Mapping library and standalone application
+  description: |
+    RTAB-Map is a graph-based RGB-D, stereo, and lidar SLAM approach designed
+    for long-term and large-scale online operation. This package provides its
+    shared C++ libraries, CMake package, Qt GUI, standalone application, and
+    command-line tools.
+  license: BSD-3-Clause AND BSD-2-Clause AND MIT AND LGPL-2.1-only
+  license_file:
+    - LICENSE
+    # Only notices for source compiled into RTAB-Map itself are listed here;
+    # independently packaged dependencies carry their own license metadata.
+    - corelib/src/SimpleIni.h
+    - corelib/include/rtabmap/core/rvl_codec.h
+    - corelib/src/rtflann/general.h
+    - corelib/src/nanoflann/nanoflann.h
+    - corelib/include/rtabmap/core/clams/discrete_depth_distortion_model.h
+    - corelib/src/GeodeticCoords.cpp
+    - corelib/src/imufilter/ComplementaryFilter.cpp
+    - corelib/src/optimizer/ceres/pose_graph_2d/angle_manifold.h
+    - corelib/src/opencv/five-point.cpp
+    - corelib/src/opencv/solvepnp.cpp
+    - corelib/src/pcl18/surface/organized_fast_mesh.h
+    - corelib/src/pcl18/surface/texture_mapping.h
+    - corelib/src/lidar/LidarVLP16.cpp
+    - guilib/src/3rdParty/QMultiComboBox.cpp
+    - guilib/src/3rdParty/lgpl-2.1.txt
+    - guilib/src/opencv/vtkImageMatSource.cpp
+
+extra:
+  recipe-maintainers:
+    - jeongseok-meta
