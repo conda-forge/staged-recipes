@@ -1,0 +1,110 @@
+schema_version: 1
+
+context:
+  name: base
+  opam_name: base
+  version: "0.17.3"
+  build_number: 0
+
+  library: ${{ "Library/" if not unix else "" }}
+  m2: ${{ "m2-" if not unix else "" }}
+  # ocaml_<platform> matchspec tail: version, plus the gcc_ (MinGW) track on non-unix
+  ocaml_spec: ${{ ocaml_compiler_version ~ (".*" if unix else ".* gcc_*") }}
+
+package:
+  name: ocaml-${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/janestreet/base/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 3f3f64789ab25bb5cb7f5f907dd651dec9cc9440981822fe75df6b94344b7208
+
+build:
+  number: ${{ build_number }}
+  string: ${{ "gcc_" if not unix }}h${{ hash }}_${{ build_number }}
+  script: bash ${{ RECIPE_DIR }}/build.sh ${{ opam_name }}
+
+requirements:
+  build:
+    - ${{ compiler("ocaml") }}
+    # compiler("ocaml") renders no toolchain track; name the gcc_ (MinGW) one on non-unix
+    - ocaml_${{ target_platform }} ${{ ocaml_spec }}
+    # C stubs and the discover.exe step: a C compiler on every lane
+    - if: unix
+      then:
+        - ${{ stdlib("c") }}
+        - ${{ compiler("c") }}
+      else:
+        - ${{ compiler("m2w64_c") }}
+        - ${{ stdlib("m2w64_c") }}
+    - ocaml-dune >=3.11
+    - ${{ m2 }}make
+    - if: not unix
+      then:
+        - m2-bash
+        - m2-coreutils
+        - m2-sed
+        - m2-grep
+        - m2-findutils
+  host:
+    # library: ocaml's run_export pins the compiler patch version
+    - ocaml ${{ ocaml_spec }}
+    - ocaml-dune >=3.11
+    - ocaml-dune-configurator
+    - ocaml-intrinsics-kernel >=0.17.0,<0.18
+    - ocaml-sexplib0 >=0.17.0,<0.18
+  run:
+    - ocaml-intrinsics-kernel >=0.17.0,<0.18
+    - ocaml-sexplib0 >=0.17.0,<0.18
+  # the ocaml run_export does not encode the non-unix toolchain track
+  run_constraints:
+    - if: not unix
+      then:
+        - ocaml_${{ target_platform }} ${{ ocaml_spec }}
+    # installed dune-package declares (lang dune X.Y); older dune cannot read it
+    - ${{ pin_compatible('ocaml-dune', lower_bound='x.x', upper_bound=None) }}
+
+tests:
+  - package_contents:
+      files:
+        - ${{ library }}lib/ocaml/${{ opam_name }}/META
+        - ${{ library }}lib/ocaml/${{ opam_name }}/${{ opam_name }}.cma
+        - ${{ library }}lib/ocaml/${{ opam_name }}/${{ opam_name }}.cmxa
+        - ${{ library }}lib/ocaml/${{ opam_name }}/${{ opam_name }}.a
+        - ${{ library }}lib/ocaml/${{ opam_name }}/${{ opam_name }}.cmxs
+  - script:
+      interpreter: bash
+      content:
+        - export DUNE_CACHE=disabled
+        - LIBDIR=$PREFIX/lib/ocaml; SEP=':'
+        - if [[ -d $PREFIX/Library/lib/ocaml ]]; then LIBDIR=$PREFIX/Library/lib/ocaml; SEP=';'; fi
+        - export OCAMLPATH="$LIBDIR${OCAMLPATH:+$SEP$OCAMLPATH}"
+        - echo '(lang dune 3.0)' > dune-project
+        - echo '(executable (name t) (libraries base))' > dune
+        - echo 'let () = assert (Base.Int.popcount 7 = 3); print_string (Base.String.uppercase "base ok")' > t.ml
+        - dune build --root . ./t.exe
+        - ./_build/default/t.exe | grep -q "BASE OK"
+    requirements:
+      run:
+        - ocaml ${{ ocaml_spec }}
+        - ocaml-dune >=3.11
+        - if: unix
+          then:
+            - ${{ compiler("c") }}
+        - if: not unix
+          then:
+            - m2-bash
+            - m2-coreutils
+            - m2-grep
+
+about:
+  homepage: https://github.com/janestreet/base
+  repository: https://github.com/janestreet/base
+  license: MIT
+  license_file: LICENSE.md
+  summary: Full standard library replacement for OCaml (Jane Street)
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+    - ManuelLerchner
