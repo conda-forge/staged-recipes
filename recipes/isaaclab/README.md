@@ -36,6 +36,6 @@ Keep `[constraints] cuda-version` in `pixi.toml` matching the driver (`nvidia-sm
 ## One test script
 
 `run_unit_tests.sh` is shared by the recipe test (shipped with `files: recipe:`) and the local pixi task, so both run the same selection.
-Its header explains what it detects (GPU, `omni.client`, `ovphysx`) and why the `isaaclab_ov` tests run in two processes on a GPU machine.
+Its header explains what it detects (GPU, `omni.client`, `ovphysx`), and a comment near the end explains why the `isaaclab_ov` tests run in two processes on a GPU machine.
 Edit the script only: the recipe calls `bash run_unit_tests.sh .`.
 When bumping the version, re-check its list of tests skipped for missing LFS data.

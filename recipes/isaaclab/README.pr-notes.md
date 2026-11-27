@@ -18,9 +18,9 @@ The recipe mirrors that layout:
 - The subpackages are the pip *extras* that add third-party deps on top of the
   base: `isaaclab-video`, `isaaclab-wandb`, `isaaclab-sb3`, `isaaclab-viser`, `isaaclab-rerun`,
   `isaaclab-mimic`, `isaaclab-tetrahedralization`, `isaaclab-leapp`,
-  `isaaclab-torchrl`. `isaaclab-all` aggregates the ones whose deps resolve on
-  conda-forge. `isaaclab-wandb` is packaged but left out of `isaaclab-all`, as in
-  upstream's `all`.
+  `isaaclab-torchrl`, `isaaclab-rlinf`. `isaaclab-all` aggregates the ones whose deps resolve on
+  conda-forge. `isaaclab-wandb` and `isaaclab-rlinf` are packaged but left out of `isaaclab-all`.
+  Upstream's `all` leaves out `wandb` and `rlinf` too.
 - The `rsl-rl` extra is already in the base install, so it has no subpackage.
 
 ## Build and name mapping
@@ -31,8 +31,7 @@ upstream wheel builder:
 - It autodiscovers every workspace member (`source/isaaclab` and each
   `source/isaaclab_*`) and installs it with `pip install --no-deps
   --no-build-isolation`.
-- It skips `isaaclab_teleop`: the optional XR teleoperation extension, off the
-  core import path, whose OpenXR runtime (`isaacteleop`) is not on conda-forge.
+- It skips `isaaclab_teleop`: the optional XR teleoperation extension, which needs `isaacteleop`, a PyPI-only binary package that is not on conda-forge.
   `isaaclab_ov` is shipped even though its `ovphysx`/`ovrtx` backends are not on
   conda-forge, because the base imports it unconditionally
   (`isaaclab/app/sim_launcher.py`) and its config classes import fine without
@@ -94,20 +93,21 @@ their subpackages stay commented in `recipe.yaml`.
 | `ovphysx`, `ovrtx`, `ovstage` | closed-source, not redistributable | `extra=ov` |
 | `skrl` | no conda-forge feedstock | `extra=skrl` |
 | `rl-games`, `standard-distutils` | no conda-forge feedstock | `extra=rl-games` |
-| `rlinf` stack | enabled, with a `simsimd <7` pin | `extra=rlinf` |
 
 The disabled extra subpackages are `isaaclab-skrl` and `isaaclab-rl-games`.
+The `skrl-jax` extra is not packaged either.
 
-`isaaclab-rlinf` is enabled.
-The old `libabseil` conflict between `decord2` and `ray-default` is gone.
-It pins `simsimd <7`, because the conda `albumentations` fixes `albucore 0.0.24`, which imports `simsimd`, and `simsimd` 7 became NumKong without that module.
+`isaaclab-rlinf` is packaged, with a `simsimd <7` pin.
+The conda `albumentations` fixes `albucore 0.0.24`, which imports `simsimd`, and `simsimd` 7 became NumKong without that module.
 Drop the pin once the `albumentations` feedstock moves to a newer `albucore`.
+The old `libabseil` conflict between `decord2` and `ray-default` is gone.
 
 ## Pin changes vs upstream
 
-The recipe tracks the `release/3.0.0` pins 1:1. Upstream states its third-party
+The recipe tracks the `release/3.0.0` pins 1:1, except where the table below says otherwise.
+Upstream states its third-party
 versions as exact `==X.Y.Z`; the recipe mirrors each as the conda-forge idiom
-`X.Y.Z.*` (e.g. `torchvision==0.26.0 -> torchvision 0.26.0.*`), which resolves to
+`X.Y.Z.*` (e.g. `warp-lang==1.17.0 -> warp-lang 1.17.0.*`), which resolves to
 the same release but tolerates the conda build string.
 
 A few pins cannot track upstream verbatim. Re-check these whenever the
@@ -116,6 +116,7 @@ version bumps.
 | conda-forge package | upstream pin | recipe pin | reason |
 |---|---|---|---|
 | `transformers` | `==5.10.4` | `>=5.10.4` | conda-forge has no `5.10.4` build (nearest `5.16.1`); floor instead of exact |
+| `pytorch`, `torchvision` | `==2.11.0`, `==0.26.0` | `>=2.11.0`, `>=0.26.0` | floored because conda-forge does not bundle NCCL (IsaacLab#8372) |
 | `pytetwild` (`pytetwild[all]`) | `>=0.3.0,<0.4` | `>=0.3.0` (+ `pyvista`) | relax the `<0.4` cap: conda-forge only ships `0.4.2`, and the `tetrahedralize` API is unchanged across `0.3`/`0.4`. `pyvista` is the sole `[all]` member |
 
 `onnxscript>=0.5` is a recipe-only base dep kept to avoid a regression.
@@ -151,10 +152,10 @@ upstream dependency change turns CI red instead of shipping stale metadata:
   and `gen_extra_metadata.py base` reinjects them as `Requires-Dist` into the
   installed `isaaclab.dist-info`. The base `pip_check` then fails if a declared
   base dep is missing.
-- **Extras.** `pip check` ignores `; extra == "..."` markers, so each metapackage
-  build runs `gen_extra_metadata.py extra` to emit a synthetic
-  `isaaclab_extra_<name>.dist-info` whose `Requires-Dist` is that extra's set. Its
-  `pip_check: true` test fails if the recipe's `run:` list drifts from upstream.
+- **Extras.** `pip check` ignores `; extra == "..."` markers, so the staging build runs `gen_extra_metadata.py extras` once.
+  Each metapackage ships its own synthetic `isaaclab_extra_<name>-<version>.dist-info` whose `Requires-Dist` is that extra's set.
+  Its `pip_check: true` test fails if the recipe's `run:` list drifts from upstream.
+  The same command stops the build if the upstream extras differ from `PACKAGED_EXTRAS` plus `SKIPPED_EXTRAS`, or if a packaged extra is missing from `gen_deps.toml`.
 - **CUDA onnxruntime.** Before build 202, the CUDA builds of conda-forge
   `onnxruntime` registered the dist only as `onnxruntime-gpu`, so `leapp`'s
   `Requires-Dist: onnxruntime` looked missing. Fixed in
@@ -173,8 +174,8 @@ pixi exec --spec rattler-build -- \
   rattler-build build --recipe recipe.yaml --target-platform linux-64 --render-only
 ```
 
-`pixi.toml` in this directory is a local smoke test, with the same closed-source wheels the
-packaging blocker above refers to (see `README.md` for the flow).
+`pixi.toml` in this directory is the local verification environment.
+It adds the closed-source wheels that pypi.nvidia.com serves (`omniverseclient`, `ovphysx`, `ovrtx`, `ovstage`), see `README.md` for the flow.
 
 The base `isaaclab` output runs the upstream `unit` suite against the installed
 package (`tests` in `recipe.yaml`, through `run_unit_tests.sh`). It collects only

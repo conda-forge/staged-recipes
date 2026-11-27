@@ -18,6 +18,10 @@ as ``isaaclab_mimic``.
 
 Requirements are recorded by name only, without versions, because conda-forge
 usually serves builds newer than the ones upstream pins.
+
+The command also fails if the upstream root pyproject extras differ from
+PACKAGED_EXTRAS plus SKIPPED_EXTRAS, or if a packaged extra is missing from
+gen_deps.toml.
 """
 
 from __future__ import annotations
@@ -29,8 +33,8 @@ import sys
 
 import tomllib
 
-# Names with no conda-forge package (closed-source Omniverse wheels or
-# integrations shipped only from Git).
+# Names with no conda-forge package: closed-source Omniverse wheels,
+# PyPI-only binaries such as isaacteleop, and packages without a feedstock.
 MISSING = {
     "isaacsim",
     "isaacsim-asset-isolated",
@@ -45,7 +49,7 @@ MISSING = {
 }
 
 # Git-only deps gen_pyproject.py drops but that have a feedstock. The recipe
-# ships them, so re-add them by name (Git URL stripped) for pip check.
+# depends on them, so re-add them by name (Git URL stripped) for pip check.
 KEEP_GIT = {
     "robomimic",
 }
