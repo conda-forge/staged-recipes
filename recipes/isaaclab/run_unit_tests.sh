@@ -39,11 +39,14 @@ python -c "import isaaclab; print('isaaclab from', isaaclab.__file__)"
 
 # Collect only the unit-marked files.
 # Pointing pytest at test/ would import standalone scripts that parse args at import.
+# The asset tests need omni.client, so they are left out when it is missing.
 skip_assets='^$'
 [ "${omni_client}" = 1 ] || skip_assets=utils/test_assets.py
 
+# The grep -v drops the skipped asset tests, and matches nothing otherwise.
 mapfile -t unit_files < <(grep -rl 'mark\.unit' source/isaaclab/test --include='*.py' | grep -v "${skip_assets}")
 
+# Without files pytest would collect the whole current directory instead.
 [ "${#unit_files[@]}" -gt 0 ] || { echo "no unit-marked test files found"; exit 1; }
 
 # `-k "not cuda"` also catches older tests with cuda-parametrized ids.
