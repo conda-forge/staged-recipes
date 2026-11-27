@@ -1,12 +1,10 @@
-# Self-contained local smoke test for the isaaclab recipe.
-# pixi-build currently drops conda-forge in the staging host env, so build the
-# recipe with rattler-build into a local channel first, then run the tasks:
-#   rattler-build build --recipe recipe.yaml -m ../../.ci_support/linux64.yaml --output-dir .pixi/channel
-#   pixi run plain          # resolve and run the Newton idle smoke
-#   pixi run -e ovrtx ovrtx # same, plus the PyPI-only Omniverse RTX backends
+# Local verification aid for the isaaclab recipe (see README.md). Removed before merge.
+# The pixi-build backend is not used.
+# With a `staging:` output, pixi 0.81.0 dropped conda-forge from the staging host solve (unverified on newer pixi).
+# Seed the local channel first, see README.md, "Local verification with pixi".
 
 [workspace]
-name = "isaaclab-conda-smoke"
+name = "isaaclab-full-env"
 channels = ["./.pixi/channel", "conda-forge"]
 # Custom platform pinning glibc for the manylinux_2_35 Omniverse wheels and cuda
 # for the CUDA pytorch build the examples need.
@@ -16,26 +14,37 @@ platforms = [
 ]
 
 [dependencies]
+flaky = "*"
 isaaclab-all = "*"
+pytest = "*"
+pytest-mock = "*"
 
 [constraints]
-python = "3.12.*"
 # The driver here (580) supports CUDA 13.0, newer nvrtc PTX fails to load in warp.
 cuda-version = "13.0.*"
+python = "3.12.*"
 
-# The Nucleus/S3 USD assets are fetched through omni.client, so even a Newton
-# idle run needs omniverseclient. It is a closed-source wheel from pypi.nvidia.com
-# (not on conda-forge), which is exactly the blocker described in the README.
 [pypi-options]
 extra-index-urls = ["https://pypi.nvidia.com"]
 no-build-isolation = true
 
+# ovphysx caps packaging at <24 while conda-forge serves 26.x.
+# Upstream widens it the same way (pyproject.toml, `packaging>=20,<27`).
+[pypi-options.dependency-overrides]
+packaging = ">=20,<27"
+
+# Closed-source wheels from pypi.nvidia.com, not on conda-forge.
+# omniverseclient provides omni.client, which fetches the Nucleus/S3 USD assets (even a Newton idle run needs it).
+# ovrtx and ovstage are the Omniverse RTX backends, ovphysx the Omniverse PhysX backend.
 [pypi-dependencies]
 omniverseclient = "==2.74.0"
+ovphysx = "==0.6.4.72118723"
+ovrtx = "==0.5.1.*"
+ovstage = "==0.2.1.*"
 
-# Newton idle smoke. The device is an argument so the long command lives once:
-# it defaults to CPU (works on a GPU-less machine) and the CUDA platform wrapper
-# below flips it to the GPU.
+# Newton idle smoke.
+# The device is an argument so the long command lives once.
+# It defaults to CPU, which works on a GPU-less machine, and the CUDA platform wrapper below flips it to the GPU.
 [tasks._cartpole]
 args = [{ arg = "device", default = "cpu", choices = ["cpu", "cuda"] }]
 cmd = """isaaclab train \
@@ -53,14 +62,8 @@ depends-on = ["_cartpole"]
 [target.linux-64-cuda13.tasks.plain]
 depends-on = [{ task = "_cartpole", args = ["cuda"] }]
 
-# ovrtx layers in the closed-source Omniverse RTX backends from PyPI, on top of
-# the omniverseclient the base env already needs.
-[feature.ovrtx.pypi-dependencies]
-ovrtx = "==0.5.1.*"
-ovstage = "==0.2.1.*"
-
 # RTX rendering needs a GPU, so expose this task only on the CUDA platform.
-[feature.ovrtx.target.linux-64-cuda13.tasks]
+[target."*cuda*".tasks]
 ovrtx = """isaaclab train \
   --task=IsaacContrib-Reorient-Cube-Shadow-Camera-Benchmark-Direct \
   --num_envs=16 \
@@ -70,5 +73,11 @@ ovrtx = """isaaclab train \
   renderer=ovrtx \
   presets=newton_mjwarp,simple_shading_diffuse_mdl"""
 
-[environments]
-ovrtx = { features = ["ovrtx"] }
+# Upstream tests on the installed package.
+# The script adapts to the GPU and the closed wheels.
+# The argument is a source tree of the packaged version, for example a `git archive` of the release tag.
+# pixi splits task arguments on spaces, so `-k "a or b"` does not work here.
+# Run `pixi run python -m pytest` directly for that.
+[tasks.unit]
+args = [{ arg = "src" }, { arg = "pytest_args", default = "" }]
+cmd = "bash run_unit_tests.sh {{ src }} {{ pytest_args }}"
