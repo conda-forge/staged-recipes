@@ -8,16 +8,16 @@ The skill `contributing-to-conda-forge` covers the general conda-forge flow.
 1. Diff the upstream tag against the previous one (`pyproject.toml` of every `source/*` member, `tools/wheel_builder/gen_pyproject.py`) and audit the pins in `recipe.yaml` against it.
    The `run` lists are manual because conda names and pins differ from PyPI.
 2. Bump `version` and `sha256`, reset `build_number` to 0.
-3. Build into a local channel, then test (a local build covers one platform):
+3. Check that the recipe builds and passes its own tests (a local build covers one platform):
    ```bash
-   rattler-build build --recipe recipes/isaaclab/recipe.yaml -m .ci_support/linux64.yaml --output-dir recipes/isaaclab/.pixi/channel
+   rattler-build build --recipe recipes/isaaclab/recipe.yaml -m .ci_support/linux64.yaml --output-dir /tmp/rb-out
    ```
    Do not pass `-c` together with the variant file.
 4. Run the local verification below.
 
 ## Local verification with pixi
 
-`pixi.toml` has one environment: the local channel plus every closed-source wheel the tests can use (`omniverseclient`, `ovrtx`, `ovstage`, `ovphysx`), pytest and flaky.
+`pixi.toml` has one environment: the package built from `recipe.yaml` through the pixi-build backend plus every closed-source wheel the tests can use (`omniverseclient`, `ovrtx`, `ovstage`, `ovphysx`), pytest and flaky.
 The conda-forge CI has none of these wheels and no GPU, so this is the only place where the extended suite runs.
 
 ```bash
