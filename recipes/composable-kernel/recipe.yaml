@@ -1,0 +1,99 @@
+schema_version: 1
+
+context:
+  version: "7.2.4"
+
+recipe:
+  name: composable-kernel-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ROCm/rocm-libraries/releases/download/rocm-${{ version }}/composablekernel.tar.gz
+  sha256: ace080bd7a0cbd4abb94d515d9bf08158aa8d5e94901730b71403000192b2dfa
+
+build:
+  number: 0
+  skip:
+    - not linux
+    - hip_compiler_version in (None, "None")
+
+outputs:
+  - staging:
+      name: composable-kernel-build
+    requirements:
+      build:
+        - ${{ compiler('clang') }}
+        - ${{ stdlib("c") }}
+        - ${{ compiler('clangxx') }}
+        - ${{ compiler('hip') }}
+        - cmake
+        - ninja
+        # tensilite dependency
+        - python <3.15
+      host:
+        - rocm-core ${{ version }}.*
+        - rocm-cmake
+    build:
+      script: build.sh
+
+  - package:
+      name: libcomposable-kernel
+    inherit: composable-kernel-build
+    build:
+      files:
+        include:
+          - "**/*"
+        exclude:
+          - include/**
+          - lib/*.a
+          - lib/cmake/**
+          - lib/pkgconfig/**
+          - share/pkgconfig/**
+          - share/doc/**
+    tests:
+      - package_contents:
+          lib:
+            - device_conv_operations
+
+  - package:
+      name: libcomposable-kernel-devel
+    inherit: composable-kernel-build
+    build:
+      files:
+        - include/**
+        - lib/*.a
+        - lib/cmake/**
+        - lib/pkgconfig/**
+        - share/pkgconfig/**
+        - share/doc/**
+    requirements:
+      run:
+        - hip-devel
+        - ${{ pin_subpackage('libcomposable-kernel', exact=True) }}
+
+      run_exports:
+        - ${{ pin_subpackage('libcomposable-kernel', upper_bound='x.x') }}
+
+    tests:
+      - package_contents:
+          include:
+            - ck/library/reference_tensor_operation/cpu/reference_gemm.hpp
+            - ck/library/reference_tensor_operation/gpu/reference_gemm.hpp
+            - ck/library/tensor_operation_instance/gpu/grouped_gemm.hpp
+
+about:
+  homepage: https://rocm.docs.amd.com/projects/composable_kernel/en/latest/
+  repository: https://github.com/ROCm/rocm-libraries/tree/develop/projects/composablekernel
+  license: MIT
+  license_file: LICENSE
+  summary: "Composable Kernel: Performance Portable Programming Model for Machine Learning Tensor Operators"
+  description: |
+    The Composable Kernel (CK) library provides a programming model for writing
+    performance-critical kernels for machine learning workloads across multiple
+    architectures (GPUs, CPUs, etc.).
+
+extra:
+  feedstock-name: composable-kernel
+  recipe-maintainers:
+    - flferretti
+    - conda-forge/rocm-core
