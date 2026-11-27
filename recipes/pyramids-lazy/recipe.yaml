@@ -1,0 +1,66 @@
+context:
+  version: "0.2.0"
+
+package:
+  name: pyramids-lazy
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/p/pyramids-lazy/pyramids_lazy-${{ version }}.tar.gz
+  sha256: 999bc8680b67beabc2bf4c1a2cd9b61f12fc33bb083613fb43a13813ea7b038c
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - setuptools >=80.0.0
+    - wheel
+    - pip
+  run:
+    - python >=${{ python_min }}
+    # pyramids-core (PyPI) is packaged as `pyramids` on conda-forge; the import
+    # name stays `pyramids`. 0.2.0 declares pyramids-core >=0.81.0 for the
+    # compute-backend seam (serapeum-org/pyramids-core#1590). conda `pyramids`
+    # pulls in the real vendored GDAL/osgeo stack, so GDAL is not declared here.
+    - pyramids >=0.81.0
+    # dask + distributed scheduler. `dask-core` is the lean conda-forge package
+    # (the `dask` metapackage would also pull distributed, which is explicit here).
+    - dask-core >=2024.1.0
+    - distributed >=2024.1.0
+    - zarr >=3
+    - fsspec >=2024.1.0
+    - s3fs >=2024.1.0
+    # kerchunk + h5py drive the NetCDF/HDF5 lazy (Zarr-reference) path.
+    - kerchunk >=0.2.10
+    - h5py >=3.8.0
+
+tests:
+  - python:
+      imports:
+        - pyramids_lazy
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+
+about:
+  homepage: https://github.com/serapeum-org/pyramids-lazy
+  repository: https://github.com/serapeum-org/pyramids-lazy
+  documentation: https://serapeum-org.github.io/pyramids-lazy
+  summary: "Lazy / dask compute backend for pyramids (the pyramids.compute_backend plugin)"
+  description: |
+    pyramids-lazy is the lazy / dask compute backend for pyramids. It registers
+    on the `pyramids.compute_backend` entry-point group so that pyramids routes
+    its lazy/dask raster and datacube operations (chunked reads, out-of-core
+    reductions, Zarr/kerchunk NetCDF access) through dask + distributed. It owns
+    only the compute backend; every GIS operation lives upstream in pyramids.
+  license: GPL-3.0-only
+  license_file: LICENSE.md
+
+extra:
+  recipe-maintainers:
+    - MAfarrag
