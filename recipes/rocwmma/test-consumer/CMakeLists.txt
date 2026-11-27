@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.16)
+project(rocwmma_consumer LANGUAGES CXX)
+find_package(rocwmma CONFIG REQUIRED)
+add_library(rocwmma_consumer OBJECT kernel.cpp)
+target_compile_features(rocwmma_consumer PRIVATE cxx_std_17)
+target_link_libraries(rocwmma_consumer PRIVATE roc::rocwmma)

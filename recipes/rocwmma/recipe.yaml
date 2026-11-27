@@ -1,0 +1,81 @@
+schema_version: 1
+
+context:
+  version: "7.2.4"
+
+package:
+  name: librocwmma-devel
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ROCm/rocm-libraries/releases/download/rocm-${{ version }}/rocwmma.tar.gz
+  sha256: 0d92dad3d7e8a16aa0aca9f09c018412630a81312cb0f8a3dae690aea9856049
+  patches:
+    - 0001-use-standard-clang-flags.patch
+    - 0002-export-cmake-dependencies.patch
+
+build:
+  number: 0
+  skip:
+    - not linux
+    - hip_compiler_version in (None, "None")
+  script: build.sh
+
+requirements:
+  build:
+    - ${{ compiler('clang') }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler('clangxx') }}
+    - ${{ compiler('hip') }}
+    - cmake
+    - ninja
+  host:
+    - rocm-core ${{ version }}.*
+    - rocm-cmake
+    - hip-devel
+    - llvm-openmp
+  run:
+    - hip-devel
+    - llvm-openmp
+tests:
+  - requirements:
+      run:
+        - cmake-package-check
+        - ${{ compiler('clang') }}
+        - ${{ compiler('clangxx') }}
+        - ${{ compiler('hip') }}
+        - cmake
+        - ninja
+    files:
+      recipe:
+        - test-consumer/
+    script:
+      - cmake-package-check rocwmma --targets roc::rocwmma
+      - cmake -S test-consumer -B consumer-build -G Ninja ${CMAKE_ARGS} -DGPU_TARGETS=gfx90a
+      - cmake --build consumer-build
+  - package_contents:
+      include:
+        - rocwmma/rocwmma.hpp
+      files:
+        exists:
+          - lib/cmake/rocwmma/rocwmma-config.cmake
+        not_exists:
+          - lib/*.so*
+          - lib/*.a
+
+about:
+  repository: https://github.com/ROCm/rocm-libraries
+  homepage: https://rocm.docs.amd.com/projects/rocWMMA/en/latest/
+  license: MIT
+  license_file: LICENSE.md
+  summary: "AMD GPU C++ header-only library for GEMM primitives based on WMMA instructions"
+  description: |
+    rocWMMA provides C++ headers for AMD GPU matrix operations using MFMA and
+    WMMA instructions. It supports building custom matrix multiplication
+    kernels with wave-level matrix fragments and load, store, and multiply
+    operations.
+
+extra:
+  feedstock-name: rocwmma
+  recipe-maintainers:
+    - traversaro
