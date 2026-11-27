@@ -73,7 +73,6 @@ PACKAGED_EXTRAS = (
     "tetrahedralization",
     "leapp",
     "torchrl",
-    "rlinf",
 )
 
 # Upstream extras deliberately not shipped.
@@ -87,6 +86,7 @@ SKIPPED_EXTRAS = {
     "ovphysx": "closed-source Omniverse wheel",
     "ovrtx": "closed-source Omniverse wheel",
     "rl-games": "no conda-forge feedstock",
+    "rlinf": "does not co-install with isaaclab, see the rlinf note in recipe.yaml",
     "rsl-rl": "already in the base",
     "skrl": "no conda-forge feedstock",
     "skrl-jax": "no conda-forge feedstock",
