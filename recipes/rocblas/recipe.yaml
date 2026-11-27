@@ -1,0 +1,145 @@
+schema_version: 1
+
+context:
+  version: "7.2.4"
+
+recipe:
+  name: rocblas-split
+  version: ${{ version }}
+
+source:
+  - url: "https://github.com/ROCm/rocm-libraries/releases/download/rocm-${{ version }}/rocblas.tar.gz"
+    sha256: fd909c8ee626be20641d1aad20eec5b1c4535d14d4ba6f488874df230a3b3b04
+    target_directory: projects/rocblas
+  - url: "https://github.com/ROCm/rocm-libraries/releases/download/rocm-${{ version }}/tensile.tar.gz"
+    sha256: 3d31f46117a5d982d01032c2fed65eae5a3c26b33d496acb9cd19f60d107cce9
+    target_directory: shared/tensile
+
+build:
+  number: 0
+  skip:
+    - not linux
+    - hip_compiler_version in (None, "None")
+
+outputs:
+  - staging:
+      name: rocblas-build
+    requirements:
+      build:
+        - ${{ compiler('clang') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('clangxx') }}
+        - ${{ compiler('hip') }}
+        - cmake
+        - pkgconf
+        - ninja
+        # Needed for tensile
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+        - msgpack-python
+        - joblib
+        - pyyaml
+        - packaging
+        - llvm-openmp
+      host:
+        - rocm-core ${{ version }}.*
+        - rocm-cmake
+        - rocm-smi
+        - libhipblas-common-devel
+        - libhipblaslt-devel
+        # Needed for tensile
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+        - msgpack-cxx
+        - libboost-devel
+        - msgpack-python
+        - joblib
+        - pyyaml
+        - packaging
+      ignore_run_exports:
+        from_package:
+          - python
+          - libboost-devel
+          - rocm-smi
+    build:
+      script: build.sh
+
+  - package:
+      name: librocblas
+    inherit: rocblas-build
+    build:
+      files:
+        include:
+          - "**/*"
+        exclude:
+          - include/**
+          - lib/*.a
+          - lib/cmake/**
+          - lib/pkgconfig/**
+          - share/pkgconfig/**
+          - share/doc/**
+    requirements:
+      ignore_run_exports:
+        from_package:
+          - python
+          - libboost-devel
+          - rocm-smi
+
+    tests:
+      - package_contents:
+          lib:
+            - rocblas
+
+  - package:
+      name: librocblas-devel
+    inherit:
+      from: rocblas-build
+      run_exports: false
+    build:
+      files:
+        - include/**
+        - lib/*.a
+        - lib/cmake/**
+        - lib/pkgconfig/**
+        - share/pkgconfig/**
+        - share/doc/**
+    requirements:
+      run:
+        - hip-devel
+        - libhipblas-common-devel
+        - libhipblaslt-devel
+        - libboost-devel
+        - ${{ pin_subpackage('librocblas', exact=True) }}
+
+      run_exports:
+        - ${{ pin_subpackage('librocblas', upper_bound='x.x') }}
+
+    tests:
+      - requirements:
+          run:
+            - cmake-package-check
+            - ${{ compiler('clang') }}
+            - ${{ compiler('clangxx') }}
+        script:
+          - cmake-package-check rocblas --targets roc::rocblas
+      - package_contents:
+          include:
+            - rocblas/rocblas.h
+
+about:
+  homepage: https://rocm.docs.amd.com/projects/rocBLAS/en/latest/
+  repository: https://github.com/ROCm/rocm-libraries
+  license: MIT
+  license_family: MIT
+  license_file:
+    - projects/rocblas/LICENSE.md
+    - shared/tensile/LICENSE.md
+  summary: "rocBLAS is the AMD library for BLAS in ROCm. Implemented using the HIP language and optimized for AMD GPUs."
+
+extra:
+  feedstock-name: rocblas
+  recipe-maintainers:
+    - flferretti
+    - conda-forge/rocm-core
