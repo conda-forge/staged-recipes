@@ -39,7 +39,7 @@ upstream wheel builder:
 - After the installs it copies `apps/`, `examples/` and `tools/template` into
   the installed core package (`$SP_DIR/isaaclab/`), the same resources the
   upstream wheel builder co-locates there. `examples/` backs the `isaaclab demo`
-  and `isaaclab example` catalogs, and a CLI smoke test checks that every
+  and `isaaclab example` catalogs, and a CLI test checks that every
   catalog script resolves.
 
 No path patch is needed. Upstream flattens the core package and resolves its

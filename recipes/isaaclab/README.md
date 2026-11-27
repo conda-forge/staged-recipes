@@ -22,8 +22,8 @@ The conda-forge CI has none of these wheels and no GPU, so this is the only plac
 
 ```bash
 cd recipes/isaaclab
-pixi run plain                     # Newton idle smoke (CPU, or GPU on the cuda platform)
-pixi run ovrtx                     # RTX renderer smoke, cuda platform only
+pixi run plain                     # Newton idle run (CPU, or GPU on the cuda platform)
+pixi run ovrtx                     # RTX renderer run, cuda platform only
 pixi run unit <IsaacLab source>    # the test script below
 ```
 
