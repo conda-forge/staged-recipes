@@ -1,5 +1,5 @@
 context:
-  version: "1.9b"
+  version: "1.95"
   # The GPU support follows from the platform: SYCL with the CUDA backend of
   # AdaptiveCpp on Linux, none on macOS
   gpu: ${{ "sycl_cuda" if linux else "none" }}
@@ -10,14 +10,15 @@ package:
 
 source:
   url: https://github.com/AlexandriaChemistry/ACT/archive/v${{ version }}.tar.gz
-  sha256: 4db89fe6e00c9e62109889d84603db3ecbdb60271d2702fa6cf3b30e9f0df07f
+  sha256: 6c0a35c6caa329c73c1c59c22e22a481c65439fbfdbefd233971d3380a5dfe21
 
 build:
   number: 0
-  # Apple silicon with ARM NEON, and x86-64 with AVX2 and SYCL with the CUDA
-  # backend of AdaptiveCpp; other platforms are not supported yet
+  # Apple silicon with ARM NEON, Linux on x86-64 with AVX2 and on ARM with
+  # ARM NEON, both with SYCL with the CUDA backend of AdaptiveCpp; other
+  # platforms are not supported yet
   skip:
-    - not ((osx and arm64) or (linux and x86_64))
+    - not ((osx and arm64) or (linux and (x86_64 or aarch64)))
   string: mpi_${{ mpi }}_${{ gpu }}_h${{ hash }}_${{ build_number }}
   script:
     file: build.sh
@@ -86,9 +87,9 @@ tests:
       - alexandria train_ff -h
       - test -f $PREFIX/share/act/alexandria.json
       - 'alexandria -version | grep "Precision: *single"'
-      - if: osx
+      - if: arm64 or aarch64
         then: 'alexandria -version | grep "Explicit SIMD: *ARM_NEON"'
-      - if: linux
+      - if: linux and x86_64
         then: 'alexandria -version | grep "Explicit SIMD: *AVX2"'
       - if: gpu == "sycl_cuda"
         then: 'alexandria -version | grep "GPU support: *SYCL"'

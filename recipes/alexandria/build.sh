@@ -22,6 +22,9 @@ if [[ "${ACT_GPU_VARIANT:-none}" == sycl_* ]]; then
     fi
 fi
 
+# The Python package act is not installed: it would go to the site-packages
+# of the Python of the build, while this package does not depend on a Python
+# version.
 # Warnings are errors in the ACT build, which is good for development, but a
 # newer compiler or library should not stop the package from building.
 cmake ${CMAKE_ARGS} --compile-no-warning-as-error -S . -B build \
@@ -35,6 +38,7 @@ cmake ${CMAKE_ARGS} --compile-no-warning-as-error -S . -B build \
     "${GPU[@]}" \
     -DACT_OPENMP=OFF \
     -DACT_DOUBLE=OFF \
+    -DACT_INSTALL_PYTHON_PACKAGE=OFF \
     -DACT_BUILD_TARBALL=ON
 
 cmake --build build --parallel ${CPU_COUNT}
