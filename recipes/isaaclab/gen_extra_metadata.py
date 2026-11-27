@@ -10,7 +10,7 @@ The ``base`` subcommand reinjects the core third-party requirements into the
 installed ``isaaclab`` metadata, and strips the closed-source ones that some
 members pin (for example ``isaaclab_ov`` depends on ``ovstage``).
 
-The ``extra`` subcommand handles the optional-dependency metapackages. Since
+The ``extras`` subcommand handles the optional-dependency metapackages. Since
 ``pip check`` ignores ``; extra == "..."`` markers, it writes for each extra a
 synthetic ``isaaclab-extra-<name>`` dist-info whose ``Requires-Dist`` lists that
 extra's dependencies. The prefix keeps the name distinct from a real member such
@@ -82,7 +82,7 @@ SKIPPED_EXTRAS = {
     "ovphysx": "closed-source Omniverse wheel",
     "ovrtx": "closed-source Omniverse wheel",
     "rl-games": "no conda-forge feedstock",
-    "rlinf": "not packaged",
+    "rlinf": "not packaged yet, see the rlinf note in recipe.yaml",
     "rsl-rl": "already in the base",
     "skrl": "no conda-forge feedstock",
     "skrl-jax": "no conda-forge feedstock",
@@ -139,32 +139,31 @@ def check_extras(root_pyproject_path: str) -> None:
 
 def cmd_extras(gen_deps_path: str, root_pyproject_path: str, site_packages: str, version: str) -> None:
     check_extras(root_pyproject_path)
+    with open(gen_deps_path, "rb") as handle:
+        generated = set(tomllib.load(handle)["project"].get("optional-dependencies", {}))
+    if missing := set(PACKAGED_EXTRAS) - generated:
+        raise SystemExit(f"gen_pyproject.py dropped the packaged extras {sorted(missing)} from {gen_deps_path}.")
+
     for extra in PACKAGED_EXTRAS:
-        cmd_extra(gen_deps_path, root_pyproject_path, site_packages, extra, version)
+        names = {dist_name(d) for d in load_deps(gen_deps_path, extra)}
+        # Re-add the conda-available Git deps gen_pyproject.py stripped.
+        names |= {name for d in load_deps(root_pyproject_path, extra) if (name := dist_name(d)) in KEEP_GIT}
+        names = sorted(names - MISSING)
 
-
-def cmd_extra(
-    gen_deps_path: str, root_pyproject_path: str, site_packages: str, extra: str, version: str
-) -> None:
-    names = {dist_name(d) for d in load_deps(gen_deps_path, extra)}
-    # Re-add the conda-available Git deps gen_pyproject.py stripped.
-    names |= {name for d in load_deps(root_pyproject_path, extra) if (name := dist_name(d)) in KEEP_GIT}
-    names = sorted(names - MISSING)
-
-    dist = f"isaaclab-extra-{extra}"
-    dist_info = os.path.join(site_packages, f"{dist.replace('-', '_')}-{version}.dist-info")
-    os.makedirs(dist_info, exist_ok=True)
-    metadata = ["Metadata-Version: 2.1", f"Name: {dist}", f"Version: {version}"]
-    metadata += [f"Requires-Dist: {name}" for name in names]
-    open(os.path.join(dist_info, "METADATA"), "w", encoding="utf-8").write("\n".join(metadata) + "\n")
-    # An empty RECORD is enough for pip to treat the directory as installed.
-    open(os.path.join(dist_info, "RECORD"), "w", encoding="utf-8").write("")
-    print(f"{dist}: wrote {len(names)} Requires-Dist ({', '.join(names) or 'none'})")
+        dist = f"isaaclab-extra-{extra}"
+        dist_info = os.path.join(site_packages, f"{dist.replace('-', '_')}-{version}.dist-info")
+        os.makedirs(dist_info, exist_ok=True)
+        metadata = ["Metadata-Version: 2.1", f"Name: {dist}", f"Version: {version}"]
+        metadata += [f"Requires-Dist: {name}" for name in names]
+        open(os.path.join(dist_info, "METADATA"), "w", encoding="utf-8").write("\n".join(metadata) + "\n")
+        # An empty RECORD is enough for pip to treat the directory as installed.
+        open(os.path.join(dist_info, "RECORD"), "w", encoding="utf-8").write("")
+        print(f"{dist}: wrote {len(names)} Requires-Dist ({', '.join(names) or 'none'})")
 
 
 def main() -> int:
     args = sys.argv[1:]
-    if len(args) >= 3 and args[0] == "base" and len(args) == 3:
+    if len(args) == 3 and args[0] == "base":
         cmd_base(args[1], args[2])
     elif len(args) == 5 and args[0] == "extras":
         cmd_extras(args[1], args[2], args[3], args[4])
