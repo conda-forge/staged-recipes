@@ -1,0 +1,92 @@
+# Local verification of the isaaclab recipe on a GPU machine (see README.md).
+# The package is built from recipe.yaml through the pixi-build backend, so there is no local channel to seed.
+# The backend is pinned to a nightly with the fix for staging outputs solved without channels (pixi#7551, pixi#7554).
+# The floor also accepts later releases, so drop the nightly channel once a release has the fix.
+
+[package]
+name = "isaaclab-full-env"
+version = "0.0.0"
+
+[package.build.backend]
+name = "pixi-build-rattler-build"
+version = ">=0.4.8.20261117.1659.e14419f"
+channels = ["https://prefix.dev/pixi-build-backends", "conda-forge"]
+
+[workspace]
+name = "isaaclab-full-env"
+channels = ["conda-forge"]
+preview = ["pixi-build"]
+# Custom platform pinning glibc for the manylinux_2_35 Omniverse wheels and cuda for the CUDA pytorch build the examples need.
+platforms = [
+    { name = "linux-64-cuda13", platform = "linux-64", glibc = "2.35", cuda = "13" },
+    { name = "linux-64-cpu", platform = "linux-64", glibc = "2.35" },
+]
+
+[dependencies]
+flaky = "*"
+isaaclab-all = { path = "." }
+pytest = "*"
+pytest-mock = "*"
+
+[constraints]
+# The driver here (580) supports CUDA 13.0, newer nvrtc PTX fails to load in warp.
+cuda-version = "13.0.*"
+python = "3.12.*"
+
+[pypi-options]
+extra-index-urls = ["https://pypi.nvidia.com"]
+no-build-isolation = true
+
+# ovphysx caps packaging at <24 while conda-forge serves 26.x.
+# Upstream widens it the same way (pyproject.toml, `packaging>=20,<27`).
+[pypi-options.dependency-overrides]
+packaging = ">=20,<27"
+
+# Closed-source wheels from pypi.nvidia.com, not on conda-forge.
+# omniverseclient provides omni.client, which fetches the Nucleus/S3 USD assets (even a Newton idle run needs it).
+# ovrtx is the Omniverse RTX backend, ovphysx the PhysX backend, and ovstage is the stage library both depend on.
+[pypi-dependencies]
+omniverseclient = "==2.74.0"
+ovphysx = "==0.6.4.72118723"
+ovrtx = "==0.5.1.*"
+ovstage = "==0.2.1.*"
+
+# Newton idle run.
+# The device is an argument so the long command lives once.
+# It defaults to CPU, which works on a GPU-less machine, and the CUDA platform wrapper below flips it to the GPU.
+[tasks._cartpole]
+args = [{ arg = "device", default = "cpu", choices = ["cpu", "cuda"] }]
+cmd = """isaaclab train \
+  --task=Isaac-Cartpole-Direct \
+  --num_envs=16 \
+  --rl_library=rsl_rl \
+  --max_iterations=10 \
+  physics=newton_mjwarp \
+  --device {{ device }} \
+  agent.device={{ device }}"""
+
+[tasks.plain]
+depends-on = ["_cartpole"]
+
+[target."*cuda*".tasks.plain]
+depends-on = [{ task = "_cartpole", args = ["cuda"] }]
+
+# RTX rendering needs a GPU, so expose this task only on the CUDA platform.
+[target."*cuda*".tasks]
+ovrtx = """isaaclab train \
+  --task=IsaacContrib-Reorient-Cube-Shadow-Camera-Benchmark-Direct \
+  --num_envs=16 \
+  --rl_library=rsl_rl \
+  --max_iterations=10 \
+  physics=newton_mjwarp \
+  renderer=ovrtx \
+  presets=newton_mjwarp,simple_shading_diffuse_mdl"""
+
+# Upstream tests on the installed package.
+# The script adapts to the GPU and the closed wheels.
+# The argument is a source tree of the packaged version, for example a `git archive` of the release tag.
+# pixi splits task arguments on spaces, so `-k "a or b"` does not work here.
+# Run `pixi run python -m pytest` directly for that.
+[tasks.unit]
+args = [{ arg = "src" }, { arg = "pytest_args", default = "" }]
+cmd = "bash run_unit_tests.sh {{ src }} {{ pytest_args }}"
