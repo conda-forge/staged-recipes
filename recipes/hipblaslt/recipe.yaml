@@ -1,0 +1,145 @@
+schema_version: 1
+
+context:
+  version: "7.2.4"
+
+recipe:
+  name: hipblaslt-split
+  version: ${{ version }}
+
+source:
+  - url: "https://github.com/ROCm/rocm-libraries/releases/download/rocm-${{ version }}/hipblaslt.tar.gz"
+    sha256: 72ad0a8db025c6d47397791a9fce5c80cde1b89fc830523d0b34e5138329de63
+    target_directory: projects/hipblaslt
+  - url: "https://github.com/ROCm/rocm-libraries/releases/download/rocm-${{ version }}/origami.tar.gz"
+    sha256: f917d10a3a9a8ec2f527c046a90a674a655b007d28132058c20e0fb34f6fcf71
+    target_directory: shared/origami
+
+build:
+  number: 0
+  skip:
+    - not linux
+    - hip_compiler_version in (None, "None")
+
+outputs:
+  - staging:
+      name: hipblaslt-build
+    requirements:
+      build:
+        - ${{ compiler('clang') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('clangxx') }}
+        - ${{ compiler('hip') }}
+        - cmake
+        - pkgconf
+        - ninja
+        # Needed for tensilelite
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+        - msgpack-python
+        - joblib
+        - pyyaml
+        - packaging
+      host:
+        - rocm-core ${{ version }}.*
+        - rocm-cmake ${{ version }}.*
+        # Tensile requires rocm-smi while generating device libraries.
+        - rocm-smi ${{ version }}.*
+        - libhipblas-common-devel
+        - librocroller-devel ${{ version }}.*
+        # Needed for tensilelite
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools
+        - msgpack-python
+        - joblib
+        - pyyaml
+        - packaging
+        - msgpack-cxx
+        - libboost-devel
+      ignore_run_exports:
+        from_package:
+          - python
+          - libboost-devel
+          - rocm-smi
+    build:
+      script: build.sh
+
+  - package:
+      name: libhipblaslt
+    inherit: hipblaslt-build
+    build:
+      files:
+        include:
+          - "**/*"
+        exclude:
+          - include/**
+          - lib/*.a
+          - lib/cmake/**
+          - lib/pkgconfig/**
+          - share/pkgconfig/**
+          - share/doc/**
+    requirements:
+      ignore_run_exports:
+        from_package:
+          - python
+          - libboost-devel
+          - rocm-smi
+
+    tests:
+      - package_contents:
+          lib:
+            - hipblaslt
+
+  - package:
+      name: libhipblaslt-devel
+    inherit:
+      from: hipblaslt-build
+      run_exports: false
+    build:
+      files:
+        - include/**
+        - lib/*.a
+        - lib/cmake/**
+        - lib/pkgconfig/**
+        - share/pkgconfig/**
+        - share/doc/**
+    requirements:
+      run:
+        - hip-devel
+        - libhipblas-common-devel
+        - librocroller-devel
+        - libboost-devel
+        - ${{ pin_subpackage('libhipblaslt', exact=True) }}
+
+      run_exports:
+        - ${{ pin_subpackage('libhipblaslt', upper_bound='x.x') }}
+
+    tests:
+      - requirements:
+          run:
+            - cmake-package-check
+            - ${{ compiler('clang') }}
+            - ${{ compiler('clangxx') }}
+        script:
+          - cmake-package-check hipblaslt --targets roc::hipblaslt
+      - package_contents:
+          include:
+            - hipblaslt/hipblaslt.h
+
+about:
+  homepage: https://rocm.docs.amd.com/projects/hipBLASLt/en/latest/
+  repository: https://github.com/ROCm/rocm-libraries
+  license: MIT
+  license_family: MIT
+  license_file:
+    - projects/hipblaslt/LICENSE.md
+    - shared/origami/LICENSE.md
+  summary: "HIP library for GEMM operations with extended functionality"
+
+extra:
+  feedstock-name: hipblaslt
+  recipe-maintainers:
+    - flferretti
+    - conda-forge/rocm-core
