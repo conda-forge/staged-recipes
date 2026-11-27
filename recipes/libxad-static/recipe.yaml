@@ -1,0 +1,68 @@
+context:
+  version: "2.3.0"
+
+package:
+  name: libxad-static
+  version: ${{ version }}
+
+source:
+  url: https://github.com/auto-differentiation/xad/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 142d877d57899ccc81ce973f073a509b30206b1e0be301521efffa244363b1ab
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+
+tests:
+  - package_contents:
+      include:
+        - XAD/XAD.hpp
+        - XAD/Config.hpp
+      files:
+        - if: unix
+          then:
+            - lib/libxad.a
+            - lib/cmake/XAD/XADConfig.cmake
+          else:
+            - Library/lib/cmake/XAD/XADConfig.cmake
+  - files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+    script:
+      - if: unix
+        then:
+          - cmake -S test -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$PREFIX
+          - cmake --build build
+          - ./build/test_xad
+        else:
+          - cmake -S test -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX%
+          - cmake --build build
+          - build\test_xad.exe
+
+about:
+  homepage: https://www.xcelerit.com/xad/docs/
+  repository: https://github.com/auto-differentiation/xad
+  documentation: https://www.xcelerit.com/xad/docs/
+  summary: Automatic differentiation in C++
+  description: |
+    XAD is a C++ library for automatic differentiation using operator overloading.
+    It provides forward and adjoint (reverse) modes of any order, vector modes,
+    checkpointing and an external function interface, and works with Eigen.
+    Upstream builds a static library only, so this package ships it under the -static name (CFEP-18).
+  license: AGPL-3.0-or-later
+  license_file: LICENSE.md
+
+extra:
+  recipe-maintainers:
+    - auto-differentiation-dev
