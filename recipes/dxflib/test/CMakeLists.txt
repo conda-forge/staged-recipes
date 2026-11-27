@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.16)
+project(dxflib_test CXX)
+find_package(dxflib 3.26 CONFIG REQUIRED)
+add_executable(write_read write_read.cpp)
+target_link_libraries(write_read PRIVATE dxflib::dxflib)
