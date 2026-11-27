@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.17)
+project(nanocdr_test CXX)
+find_package(nanocdr CONFIG REQUIRED)
+add_executable(roundtrip roundtrip.cpp)
+target_link_libraries(roundtrip PRIVATE nanocdr::nanocdr)
