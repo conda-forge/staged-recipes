@@ -48,8 +48,8 @@ MISSING = {
     "standard-distutils",
 }
 
-# Git-only deps gen_pyproject.py drops but that have a feedstock. The recipe
-# depends on them, so re-add them by name (Git URL stripped) for pip check.
+# Git-only deps gen_pyproject.py drops but that have a feedstock.
+# The recipe depends on them, so re-add them by name (Git URL stripped) for pip check.
 KEEP_GIT = {
     "robomimic",
 }

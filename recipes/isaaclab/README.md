@@ -17,7 +17,7 @@ The skill `contributing-to-conda-forge` covers the general conda-forge flow.
 
 ## Local verification with pixi
 
-`pixi.toml` has one environment: the package built from `recipe.yaml` through the pixi-build backend plus every closed-source wheel the tests can use (`omniverseclient`, `ovrtx`, `ovstage`, `ovphysx`), pytest and flaky.
+`pixi.toml` has one environment: the package built from `recipe.yaml` through the pixi-build backend plus every closed-source wheel the tests can use (`omniverseclient`, `ovrtx`, `ovstage`, `ovphysx`), pytest, pytest-mock and flaky.
 The conda-forge CI has none of these wheels and no GPU, so this is the only place where the extended suite runs.
 
 ```bash
