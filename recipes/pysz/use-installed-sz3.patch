@@ -1,0 +1,31 @@
+--- a/setup.py
++++ b/setup.py
+@@ -3,6 +3,7 @@
+ Automatically downloads and builds SZ3 with bundled zstd.
+ """
+ 
++import os
+ import sys
+ import shutil
+ import subprocess
+@@ -47,6 +48,20 @@
+ class BuildSZ3Extension(_build_ext):
+ 
+     def run(self):
++        sz3_prefix = os.environ.get("PYSZ_SZ3_PREFIX")
++        if sz3_prefix:
++            # An installed SZ3 (its headers) and the Zstd installed beside it, as a distribution builds it.
++            prefix = Path(sz3_prefix)
++            for ext in self.extensions:
++                ext.include_dirs.insert(0, str(prefix / "include"))
++                ext.library_dirs.append(str(prefix / "lib"))
++                ext.libraries.append("zstd")
++                # The distribution's compiler flags set the deployment target.
++                ext.extra_compile_args = [a for a in ext.extra_compile_args
++                                          if not a.startswith("-mmacosx-version-min")]
++            super().run()
++            return
++
+         sz3_dir = self.download_and_build_sz3()
+         zstd_name, zstd_dir = find_zstd_library(sz3_dir)
+         print(f"Linking bundled Zstd: {zstd_name} from {zstd_dir}")
