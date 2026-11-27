@@ -1,0 +1,104 @@
+context:
+  name: smsd
+  version: "8.2.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 904326e8bc7fee5bbf91515ba7d685349df00d7c20d3cace429498e40b1b38ed
+
+build:
+  number: 0
+  skip:
+    - match(python, "<3.12")
+  python:
+    entry_points:
+      - smsd-mcp = smsd.mcp_server:main
+  script:
+    content:
+      # The Visual Studio activation names its own generator, platform and toolset; Ninja takes none.
+      - if: win
+        then:
+          - set CMAKE_GENERATOR=Ninja
+          - set CMAKE_GENERATOR_PLATFORM=
+          - set CMAKE_GENERATOR_TOOLSET=
+        else:
+          - export CMAKE_GENERATOR=Ninja
+      - if: osx
+        then:
+          - export CMAKE_ARGS="${CMAKE_ARGS} -DOpenMP_ROOT=${PREFIX}"
+      - >-
+        python -m pip install . -vv --no-deps --no-build-isolation
+        -Ccmake.define.SMSD_BUILD_TESTS=OFF
+        -Ccmake.define.SMSD_BUILD_OPENMP=ON
+        -Ccmake.define.SMSD_BUILD_CUDA=OFF
+        -Ccmake.define.SMSD_BUILD_METAL=${{ "ON" if osx and arm64 else "OFF" }}
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - pybind11
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.18
+    - ninja
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.5,<2
+    - pybind11 >=2.12,<4
+    - if: osx
+      then: llvm-openmp
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - smsd
+        - smsd.adapters
+        - smsd.clustering
+        - smsd.corpus
+        - smsd.highlight
+        - smsd.mcp_server
+      pip_check: true
+  - files:
+      recipe:
+        - run_test.py
+        - check_launcher.py
+    requirements:
+      run:
+        - python
+        - numpy >=1.24,<3
+    script:
+      - python run_test.py
+      - python check_launcher.py
+
+about:
+  homepage: https://asad.github.io/SMSD/
+  repository: https://github.com/asad/SMSD
+  documentation: https://asad.github.io/SMSD/guide/
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - NOTICE
+    - licenses/rdkit/LICENSE
+    - licenses/pybind11/LICENSE
+  summary: Chemical substructure and SMARTS search, MCS, molecular fingerprints and similarity screening
+  description: |
+    SMSD Pro provides substructure and SMARTS search, maximum common substructure (MCS) search,
+    molecular fingerprints and similarity screening for chemical graphs.
+
+    Use it for cheminformatics tasks such as finding molecular motifs, comparing common
+    substructures and screening compound libraries. Search results include atom and bond
+    mappings and explicit search status fields.
+
+extra:
+  recipe-maintainers:
+    - asad

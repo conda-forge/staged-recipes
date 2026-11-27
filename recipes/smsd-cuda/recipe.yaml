@@ -1,0 +1,82 @@
+context:
+  name: smsd-cuda
+  version: "8.2.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+# The smsd source distribution on PyPI omits this package, so the GitHub release archive is used.
+source:
+  url: https://github.com/asad/SMSD/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 6fd6b5441e8e6d8eb960f5f356a471908ba2dd57315ae4a9033c6ef57a40bb03
+  patches:
+    - 0001-use-conda-cuda-runtime.patch
+
+build:
+  number: 0
+  skip:
+    - not (linux and x86_64)
+    - match(python, "<3.12")
+    - cuda_compiler_version != "12.9"
+  script:
+    - export CMAKE_GENERATOR=Ninja
+    - cd packaging/smsd-cuda
+    - >-
+      python -m pip install . -vv --no-deps --no-build-isolation
+      -Ccmake.define.SMSD_CUDA_RUNTIME_MINIMUM=12.9
+      -Ccmake.define.SMSD_CUDA_BINARY_MMA_PROTOTYPE=OFF
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('cuda') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.18
+    - ninja
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.10,<2
+    - cuda-version ${{ cuda_compiler_version }}.*
+    - cuda-cudart-dev
+    - cuda-cccl
+  run:
+    - python
+    - smsd ==${{ version }}
+
+tests:
+  - python:
+      imports:
+        - smsd_cuda
+      pip_check: true
+  # Checks the package versions and the CUDA runtime linkage. It needs no GPU.
+  - files:
+      recipe:
+        - run_test.py
+    requirements:
+      run:
+        - python
+    script:
+      - python run_test.py
+
+about:
+  homepage: https://asad.github.io/SMSD/
+  repository: https://github.com/asad/SMSD
+  documentation: https://asad.github.io/SMSD/guide/
+  license: Apache-2.0 AND BSD-3-Clause AND Apache-2.0 WITH LLVM-exception
+  license_file:
+    - packaging/smsd-cuda/LICENSE
+    - packaging/smsd-cuda/NOTICE
+    - packaging/smsd-cuda/licenses/cub/LICENSE
+    - packaging/smsd-cuda/licenses/cccl/LICENSE
+  summary: Optional NVIDIA CUDA backend for SMSD Pro fingerprint screening
+  description: |
+    Optional NVIDIA CUDA backend for SMSD Pro fingerprint screening on Linux x86-64. Screens that
+    run on the GPU are designed to return the same hits and scores as the CPU. The package is
+    built with CUDA 12.9 and needs smsd at the same version; GPU use also needs a supported
+    NVIDIA GPU and its system driver. Without a usable GPU, smsd screens on the CPU.
+
+extra:
+  recipe-maintainers:
+    - asad
