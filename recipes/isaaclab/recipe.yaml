@@ -37,21 +37,6 @@ outputs:
       name: isaaclab-build
     build:
       script:
-        # Surface skips as native CI warnings (GitHub Actions, Azure) or plain text.
-        - |
-          warn() {
-            if [ "${GITHUB_ACTIONS:-}" = "true" ] || [ "${CI:-}" = "github_actions" ]; then echo "::warning::$*"; return; fi
-            # Azure logging command. The build runs inside a container that
-            # receives AZURE (and CI), not the host-only TF_BUILD. Keep the hash
-            # prefix in a variable so the v1 recipe linter does not read the
-            # bracket as a comment selector.
-            if [ "${AZURE:-}" = "True" ]; then
-              h='##'
-              echo "${h}vso[task.logissue type=warning]$*"
-              return
-            fi
-            if [ -t 1 ]; then printf '\033[1;33mWARNING: %s\033[0m\n' "$*"; else echo "WARNING: $*"; fi
-          }
         # Install every workspace member under source/, minus skip_extensions.
         # Kit-only stubs without a Python project are skipped by find.
         - |
@@ -61,7 +46,7 @@ outputs:
             | sort -u | while read -r ext; do
             pkg=$(basename "$ext")
             case " ${{ skip_extensions }} " in
-              *" $pkg "*) warn "skip $pkg, backend missing on conda-forge"; continue ;;
+              *" $pkg "*) echo "::warning::skip $pkg, backend missing on conda-forge"; continue ;;
             esac
             ${{ PYTHON }} -m pip install "./$ext" -vv --no-deps --no-build-isolation
           done
