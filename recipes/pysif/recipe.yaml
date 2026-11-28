@@ -1,0 +1,140 @@
+# Copyright (C) 2026 Luca Palmieri
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# This file is part of sif. See COPYING for the full license text.
+
+# The conda package of pysif, for conda-forge (rattler-build's format).
+#
+# Where a wheel bundles FFTW, HDF5, cfitsio and the OpenMP runtime, this
+# package takes each from conda-forge as a dependency: one OpenMP runtime for
+# the whole environment, numpy's and scipy's included, instead of a second
+# copy of it inside pysif.
+#
+# Built here from this checkout (see packaging/conda/README.md):
+#
+#   rattler-build build -r packaging/conda/recipe.yaml \
+#     -m $CONDA_PREFIX/conda_build_config.yaml \
+#     -m packaging/conda/local.yaml
+#
+# The copy in the feedstock is this file with the source swapped for the
+# release's sdist on PyPI, url and sha256; nothing else differs.
+
+context:
+  name: pysif
+  # The version in CMakeLists.txt; release.yml checks the two agree.
+  version: "0.5.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/p/pysif/pysif-${{ version }}.tar.gz
+  sha256: 57c9d84b91dbb00b79a1291c006e89beca3acfeb3cfbd091c7fc73bd1376ca10
+
+build:
+  number: 0
+  # MSVC's OpenMP is too old for sif, as for the wheels.
+  skip: win
+  # - Ninja by name: rattler-build sets CMAKE_GENERATOR to Unix Makefiles,
+  #   and Linux's build containers have no make.
+  # - Libraries, headers and CMake packages from the environment ($PREFIX)
+  #   only, never from the system's or PATH's prefixes, where a Homebrew HDF5,
+  #   say, would be found and linked. Programs, the compiler among them, are
+  #   still found on PATH.
+  # - Portable code, rather than the build machine's -march=native.
+  # - No library directories recorded: conda's compilers record $PREFIX/lib.
+  # - HDF5 and FITS required rather than hoped for.
+  # - FFTW's OpenMP backend, which shares the one runtime here; the wheels
+  #   use pthreads only because they bundle a runtime of their own.
+  script:
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      -C build-dir=build/conda
+      -C cmake.args=-GNinja
+      -C cmake.define.CMAKE_FIND_ROOT_PATH=$PREFIX
+      -C cmake.define.CMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY
+      -C cmake.define.CMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY
+      -C cmake.define.CMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY
+      -C cmake.define.CMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER
+      -C cmake.define.SIF_NATIVE_ARCH=OFF
+      -C cmake.define.SIF_RECORD_RPATH=OFF
+      -C cmake.define.SIF_HDF5_SUPPORT=ON
+      -C cmake.define.SIF_FITS_SUPPORT=ON
+      -C cmake.define.SIF_FFTW_THREADING=omp
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.15
+    - ninja
+    - if: osx
+      then: llvm-openmp
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.11
+    - numpy
+    - fftw
+    - hdf5
+    - cfitsio
+    # macOS's compiler has no OpenMP runtime; Linux's, GCC's libgomp, comes
+    # with the compiler.
+    - if: osx
+      then: llvm-openmp
+  run:
+    - python
+    # The oldest NumPy the module is compiled for (python/CMakeLists.txt).
+    - numpy >=1.23
+
+tests:
+  - python:
+      imports:
+        - pysif
+        - pysif.io
+        - pysif.finders
+        - pysif.measure
+        - pysif.model
+      pip_check: true
+  # The wheel's smoke test: a finder run (FFTW, OpenMP), HDF5 next to
+  # h5py's, the FITS fixture, the program through its launcher, the stubs.
+  - files:
+      source:
+        - packaging/test_wheel.py
+        - tests/data/fits/
+    requirements:
+      run:
+        - h5py
+    script:
+      - python packaging/test_wheel.py
+  # And the binding tests, but for the stubs' check against the source tree.
+  - files:
+      source:
+        - tests/python/
+        - tests/data/
+    requirements:
+      run:
+        - pytest
+    script:
+      - python -m pytest -p no:cacheprovider tests/python
+        --ignore=tests/python/test_stubs.py
+
+about:
+  homepage: https://github.com/lucapalmi/sif
+  documentation: https://lucapalmi.github.io/sif/
+  repository: https://github.com/lucapalmi/sif
+  summary: Cosmic void finding and analysis
+  description: |
+    sif finds cosmic voids in simulations and galaxy surveys, and measures
+    and models their statistics: size functions, density and velocity
+    profiles, the one-point PDF and spectral moments of the density field.
+    pysif is its Python package, with the sif-exodus command-line finder.
+  # Lua is compiled into sif-exodus, from vendor/lua.
+  license: GPL-3.0-or-later AND MIT
+  license_file:
+    - COPYING
+    - vendor/lua/LICENSE
+
+extra:
+  recipe-maintainers:
+    - lucapalmi
