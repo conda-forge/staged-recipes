@@ -1,0 +1,111 @@
+context:
+  name: dbdelve
+  version: "0.2.2"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ShayanAbbas1/dbdelve/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: fed19b10133759839e3811a3cc2a6fbc5b76bec05eebf08469891296c05ac091
+
+build:
+  number: 0
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      - if: unix
+        then:
+          - cargo auditable install --locked --no-track --path . --target $CARGO_BUILD_TARGET --root ${{ PREFIX }}
+          - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+          - mkdir -p ${{ PREFIX }}/Menu
+          - sed -e "s/__PKG_VERSION__/$PKG_VERSION/g" $RECIPE_DIR/menu.json > ${{ PREFIX }}/Menu/${PKG_NAME}_menu.json
+          # No upstream .icns, hence building from Linux PNGs.
+          - if: osx
+            then:
+              - mkdir -p DBDelve.iconset
+              - cp assets/linux/icons/dbdelve-16.png DBDelve.iconset/icon_16x16.png
+              - cp assets/linux/icons/dbdelve-32.png DBDelve.iconset/icon_16x16@2x.png
+              - cp assets/linux/icons/dbdelve-32.png DBDelve.iconset/icon_32x32.png
+              - cp assets/linux/icons/dbdelve-64.png DBDelve.iconset/icon_32x32@2x.png
+              - cp assets/linux/icons/dbdelve-128.png DBDelve.iconset/icon_128x128.png
+              - cp assets/linux/icons/dbdelve-256.png DBDelve.iconset/icon_128x128@2x.png
+              - cp assets/linux/icons/dbdelve-256.png DBDelve.iconset/icon_256x256.png
+              - cp assets/linux/icons/dbdelve-512.png DBDelve.iconset/icon_256x256@2x.png
+              - cp assets/linux/icons/dbdelve-512.png DBDelve.iconset/icon_512x512.png
+              - iconutil -c icns DBDelve.iconset -o ${{ PREFIX }}/Menu/dbdelve.icns
+              - rm -rf DBDelve.iconset
+            else:
+              - cp assets/linux/icons/dbdelve-256.png ${{ PREFIX }}/Menu/dbdelve.png
+        else:
+          - cargo auditable install --locked --no-track --path . --root %LIBRARY_PREFIX%
+          - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+          - mkdir "%PREFIX%\Menu"
+          - powershell -Command "(Get-Content '%RECIPE_DIR%\menu.json') -replace '__PKG_VERSION__', '%PKG_VERSION%' | Set-Content '%PREFIX%\Menu\%PKG_NAME%_menu.json'"
+          - copy "assets\windows\dbdelve.ico" "%PREFIX%\Menu\dbdelve.ico"
+
+requirements:
+  build:
+    - ${{ compiler('rust') }}
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+    - cargo-auditable
+    - pkg-config
+    - cmake
+  host:
+    - if: linux
+      then:
+        - fontconfig
+        - freetype
+        - expat
+        - libxcb
+        - libxkbcommon
+        - xorg-libx11
+        - wayland
+        - dbus
+        - libvulkan-loader
+        - libglvnd
+
+tests:
+  - package_contents:
+      bin:
+        - dbdelve
+      files:
+        - if: osx
+          then:
+            - Menu/dbdelve.icns
+            - Menu/dbdelve_menu.json
+        - if: linux
+          then:
+            - Menu/dbdelve.png
+            - Menu/dbdelve_menu.json
+        - if: win
+          then:
+            - Menu/dbdelve.ico
+            - Menu/dbdelve_menu.json
+      strict: true
+
+about:
+  homepage: https://github.com/ShayanAbbas1/dbdelve
+  repository: https://github.com/ShayanAbbas1/dbdelve
+  summary: Native, keyboard-driven SQL client for Postgres, MySQL, SQLite, SQL Server and Snowflake
+  description: |
+    DBDelve is a native, cross-platform SQL client built with GPUI (the GPU-accelerated
+    UI framework from the Zed editor team). It supports Postgres, MySQL, SQLite,
+    Snowflake and SQL Server, with SSH tunneling, per-connection access controls,
+    inline cell editing with UPDATE-statement preview, schema-aware autocomplete,
+    and CSV/JSON export.
+  license: MIT
+  license_file:
+    - LICENSE
+    - NOTICES.md
+    - licenses/OFL-1.1.txt
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - sumanth-manchala
