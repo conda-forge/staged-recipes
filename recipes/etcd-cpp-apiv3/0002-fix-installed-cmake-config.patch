@@ -1,0 +1,39 @@
+Subject: [PATCH] Fix installed CMake config for conda-forge consumers
+
+- Only require cpprestsdk when the async client is built; with
+  BUILD_ETCD_CORE_ONLY=ON, find_package(etcd-cpp-api) otherwise fails.
+- Prefer Protobuf in CONFIG mode (as the build itself does). Module-mode
+  FindProtobuf defines protobuf:: targets that then clash with protobuf's
+  config, which gRPCConfig.cmake loads.
+---
+--- a/etcd-cpp-api-config.in.cmake
++++ b/etcd-cpp-api-config.in.cmake
+@@ -8,16 +8,24 @@
+ 
+ # find dependencies
+ include(CMakeFindDependencyMacro)
+-find_dependency(Protobuf)
++# prefer protobuf's own CMake config (as the build does) so gRPC's
++# find_dependency(Protobuf CONFIG) doesn't redefine the protobuf:: targets
++find_package(Protobuf CONFIG QUIET)
++if(NOT Protobuf_FOUND)
++    find_dependency(Protobuf)
++endif()
+ find_package(gRPC QUIET)
+ if(NOT gRPC_FOUND)
+     list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
+     find_dependency(GRPC)
+ endif()
+ 
+-find_dependency(cpprestsdk)
+-if(cpprestsdk_FOUND)
+-    set(CPPREST_LIB cpprestsdk::cpprest)
++# cpprestsdk is only needed by the asynchronous client
++if(NOT @BUILD_ETCD_CORE_ONLY@)
++    find_dependency(cpprestsdk)
++    if(cpprestsdk_FOUND)
++        set(CPPREST_LIB cpprestsdk::cpprest)
++    endif()
+ endif()
+ 
+ set(ETCD_CPP_HOME "${CMAKE_CURRENT_LIST_DIR}/../../..")

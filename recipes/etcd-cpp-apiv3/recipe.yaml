@@ -1,0 +1,123 @@
+schema_version: 1
+
+context:
+  name: etcd-cpp-apiv3
+  version: "0.15.4"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/etcd-cpp-apiv3/etcd-cpp-apiv3/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 4516ecfa420826088c187efd42dad249367ca94ea6cdfc24e3030c3cf47af7b4
+  patches:
+    # backport of upstream 216b86f: gRPC >= 1.66 removed GPR_ASSERT
+    - 0001-replace-GPR_ASSERT-with-assert.patch
+    # installed CMake config: don't require cpprestsdk in core-only builds,
+    # and find Protobuf in CONFIG mode so it doesn't clash with gRPC's config
+    - 0002-fix-installed-cmake-config.patch
+
+build:
+  number: 0
+  script:
+    # BUILD_ETCD_CORE_ONLY=ON builds the synchronous client only; the async
+    # client needs cpprestsdk, which is not packaged on conda-forge.
+    # ETCD_W_STRICT=OFF drops upstream's -Werror so newer compilers don't break the build.
+    # CMAKE_POLICY_VERSION_MINIMUM is needed because upstream's cmake_minimum_required
+    # predates 3.5, which CMake 4 no longer accepts.
+    - if: unix
+      then:
+        - cmake -S . -B build -G Ninja ${CMAKE_ARGS}
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_INSTALL_PREFIX=$PREFIX
+          -DCMAKE_PREFIX_PATH=$PREFIX
+          -DBUILD_SHARED_LIBS=ON
+          -DBUILD_ETCD_CORE_ONLY=ON
+          -DBUILD_ETCD_TESTS=OFF
+          -DETCD_W_STRICT=OFF
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+        - cmake --build build --parallel
+        - cmake --install build
+    - if: win
+      then:
+        - cmake -S . -B build -G Ninja %CMAKE_ARGS%
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%
+          -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX%
+          -DBUILD_SHARED_LIBS=ON
+          -DBUILD_ETCD_CORE_ONLY=ON
+          -DBUILD_ETCD_TESTS=OFF
+          -DETCD_W_STRICT=OFF
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+        - cmake --build build --parallel
+        - cmake --install build
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+    # protoc and grpc_cpp_plugin must run on the build machine when cross-compiling
+    - if: build_platform != target_platform
+      then:
+        - libprotobuf
+        - libgrpc
+  host:
+    - libprotobuf
+    - libgrpc
+    - libabseil
+    - openssl
+
+tests:
+  - package_contents:
+      include:
+        - etcd/SyncClient.hpp
+        - etcd/Response.hpp
+        - etcd/v3/Transaction.hpp
+      lib:
+        - etcd-cpp-api-core
+      files:
+        - if: unix
+          then: lib/cmake/etcd-cpp-api/etcd-cpp-api-config.cmake
+          else: Library/lib/cmake/etcd-cpp-api/etcd-cpp-api-config.cmake
+  # downstream consumer: find_package(etcd-cpp-api) + link SyncClient/Watcher
+  - files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+    script:
+      - if: unix
+        then:
+          - cmake -S test -B test/build -G Ninja ${CMAKE_ARGS} -DCMAKE_PREFIX_PATH=$PREFIX
+          - cmake --build test/build
+          - ./test/build/etcd_test
+        else:
+          - cmake -S test -B test\build -G Ninja %CMAKE_ARGS% -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX%
+          - if errorlevel 1 exit 1
+          - cmake --build test\build
+          - if errorlevel 1 exit 1
+          - test\build\etcd_test.exe
+
+about:
+  license: BSD-3-Clause
+  license_file: LICENSE.txt
+  summary: C++ API for etcd's v3 client API
+  description: |
+    The etcd-cpp-apiv3 is a C++ library for etcd's v3 client APIs,
+    i.e., ETCDCTL_API=3. This package provides the synchronous client
+    (etcd::SyncClient) and watcher (etcd::Watcher); the cpprestsdk-based
+    asynchronous client (etcd::Client) is not included.
+  homepage: https://github.com/etcd-cpp-apiv3/etcd-cpp-apiv3
+  repository: https://github.com/etcd-cpp-apiv3/etcd-cpp-apiv3
+  documentation: https://github.com/etcd-cpp-apiv3/etcd-cpp-apiv3#readme
+
+extra:
+  recipe-maintainers:
+    - gangeli-kx
