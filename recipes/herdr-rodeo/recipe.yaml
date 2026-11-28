@@ -1,0 +1,66 @@
+context:
+  version: "0.2.1"
+
+package:
+  name: herdr-rodeo
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/lukeed/rodeo/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: c8a75e00d66640affcee36d4079b01e684d2d97d45f58f1e2c7e187bdb4528a2
+
+build:
+  number: 0
+  # Unix only: rodeo uses std::os::fd, unix signal handling, and terminput
+  skip:
+    - win
+  script:
+    env:
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+      CARGO_PROFILE_RELEASE_LTO: fat
+    content:
+      - cargo auditable install --locked --no-track --bins --root ${{ PREFIX }} --path crates/rodeo
+      - cargo-bundle-licenses --format yaml --output ./THIRDPARTY.yml
+
+requirements:
+  build:
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-auditable
+    - cargo-bundle-licenses
+  host:
+    - rust
+    - libghostty-vt
+  run:
+    - herdr-core >=0.1.18
+
+tests:
+  - script:
+      - rodeo --help
+      - rodeo --version
+  - package_contents:
+      bin:
+        - rodeo
+      strict: true
+
+about:
+  homepage: https://rodeo.lukeed.com
+  summary: A terminal UI for herdr-core with Herdr's keys and look
+  description: |
+    rodeo is a keyboard-first terminal UI for herdr-core (`hc`). It shares
+    spaces, tabs and panes with the Herdr desktop app: a split created in
+    rodeo shows up in the app, and the other way around. Since `hc` owns
+    every program and rodeo only owns the UI, terminals keep running while
+    rodeo is closed or reopened. Workspaces, tabs and splits are driven
+    from the keyboard (`ctrl+b` prefix) or the mouse, with agent states,
+    worktrees, popups, copy mode, image paste, links and kitty graphics.
+  license: MIT
+  license_file:
+    - license
+    - THIRDPARTY.yml
+  documentation: https://rodeo.lukeed.com/docs/
+  repository: https://github.com/lukeed/rodeo
+
+extra:
+  recipe-maintainers:
+    - claudiushaag
