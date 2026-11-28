@@ -1,0 +1,84 @@
+schema_version: 1
+
+context:
+  name: chopcal
+  version: "0.9.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  - url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+    sha256: bd4a78a59121cccc4570bee309ba0a9f883132a5b63f08e14385b4e6ecd08a9f
+
+build:
+  number: 0
+  script:
+    # FULLY_DISCONNECTED: use the host's chopper-lib, never fetch it
+    - if: unix
+      then: >-
+        CMAKE_GENERATOR=Ninja ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        -Ccmake.define.FETCHCONTENT_FULLY_DISCONNECTED=ON
+      else: >-
+        ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        -Ccmake.define.FETCHCONTENT_FULLY_DISCONNECTED=ON
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - nanobind >=1.7.0
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake >=3.26
+    - ninja
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.4.3
+    - nanobind >=1.7.0
+    - setuptools-scm >=8
+    - chopper-lib >=4.4.2
+  run:
+    - python
+    - numpy
+
+tests:
+  - python:
+      imports:
+        - chopcal
+        - chopcal.lib
+        - chopcal.nicos
+      pip_check: true
+  - files:
+      source:
+        - test/
+        - docs/
+        - zensical.toml
+    requirements:
+      run:
+        - pytest
+    script:
+      - pytest test -q
+
+about:
+  homepage: https://github.com/g5t/chopper-calculations
+  documentation: https://g5t.github.io/chopper-calculations/
+  repository: https://github.com/g5t/chopper-calculations
+  summary: Chopper calculations from McStas instruments, in Python
+  description: |
+    chopcal exposes the chopper calculations of McStas' chopper-lib to Python: chopper
+    settings for ESS's BIFROST, the wavelength bands a chopper train passes, the exact
+    region of (inverse velocity, emission time) it transmits as convex polygons, samplers
+    over that region, and the integration of a gridded source over it, weighted by how
+    likely each neutron is to get through a disc whose edge is sweeping the beam.
+  license: BSD-3-Clause
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - g5t
