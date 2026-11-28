@@ -1,0 +1,58 @@
+# Use the packaged Microsoft GSL and expose accurate, discoverable CMake version metadata.
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -5,7 +5,7 @@
+   set(UUID_MAIN_PROJECT ON)
+ endif()
+ 
+-project(stduuid CXX)
++project(stduuid VERSION 1.2.3 LANGUAGES CXX)
+ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+ 
+ option(UUID_BUILD_TESTS "Build the unit tests" ${UUID_MAIN_PROJECT})
+@@ -16,6 +16,7 @@
+ 
+ # Library target
+ add_library(${PROJECT_NAME} INTERFACE)
++target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_17)
+ target_include_directories(${PROJECT_NAME} INTERFACE
+         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+         $<INSTALL_INTERFACE:include>)
+@@ -47,7 +48,8 @@
+     target_include_directories(${PROJECT_NAME} INTERFACE
+             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+             $<INSTALL_INTERFACE:include>)
+-    install(DIRECTORY gsl DESTINATION include)
++    find_package(Microsoft.GSL CONFIG REQUIRED)
++    target_link_libraries(${PROJECT_NAME} INTERFACE Microsoft.GSL::GSL)
+ endif ()
+ 
+ if(UUID_ENABLE_INSTALL)
+@@ -63,12 +65,12 @@
+             "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
+             INSTALL_DESTINATION lib/cmake/${PROJECT_NAME})
+     write_basic_package_version_file(
+-            "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-version.cmake"
+-            VERSION "1.0"
++            "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake"
++            VERSION "${PROJECT_VERSION}"
+             COMPATIBILITY AnyNewerVersion)
+     install(FILES
+             "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
+-            "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-version.cmake"
++            "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake"
+             "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindLibuuid.cmake"
+             DESTINATION lib/cmake/${PROJECT_NAME})
+     export(EXPORT ${PROJECT_NAME}-targets
+--- a/cmake/Config.cmake.in
++++ b/cmake/Config.cmake.in
+@@ -1,6 +1,9 @@
+ @PACKAGE_INIT@
+ 
+ include(CMakeFindDependencyMacro)
++if (NOT @UUID_USING_CXX20_SPAN@)
++    find_dependency(Microsoft.GSL CONFIG REQUIRED)
++endif ()
+ if (@UUID_SYSTEM_GENERATOR@)
+     if (WIN32 OR APPLE)
+     else ()
