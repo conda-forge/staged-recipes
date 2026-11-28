@@ -1,0 +1,149 @@
+schema_version: 1
+
+context:
+  # Arm normalises its releases as "<gcc-major>.<minor>.rel<n>", which is not a
+  # conda version: the ".rel1" segment sorts unpredictably against a future
+  # "15.3.rel1" and confuses ">=15.2"-style specs. Map it to a plain three-part
+  # version and keep Arm's own name for building the download URL.
+  version: "15.2.1"
+  arm_release: "15.2.rel1"
+  # Arm's build scripts are not part of the source snapshot; they live in their
+  # own MIT-licensed repo and are pinned separately.
+  devtools_rev: v1.6.3
+  # zstd is a required component of the build (gcc is configured --with-zstd)
+  # but Arm's source snapshot does not ship it, so it is fetched separately.
+  zstd_version: "1.5.7"
+
+package:
+  name: gcc-arm-none-eabi
+  version: ${{ version }}
+
+source:
+  # Arm's official source snapshot for the release. It unpacks the component
+  # directories (gcc, binutils-gdb, newlib-cygwin, gmp, mpfr, mpc, isl,
+  # libexpat, ...) side by side, which is the layout the build scripts expect
+  # to find under src/.
+  - url: https://developer.arm.com/-/media/Files/downloads/gnu/${{ arm_release }}/srcrel/arm-gnu-toolchain-src-snapshot-${{ arm_release }}.tar.xz
+    sha256: 06f4e5792b566a771c300ac6f46c3422e23e34f4e3a5d44a8cb5594ead6fb82e
+    target_directory: src
+  - git: https://git.gitlab.arm.com/tooling/gnu-devtools-for-arm.git
+    rev: ${{ devtools_rev }}
+    target_directory: src/gnu-devtools-for-arm
+  # The build scripts require a zstd source tree (they build libzstd.a and
+  # configure gcc --with-zstd) but Arm's snapshot omits it, so the build fails
+  # at startup with "cannot find zstd source" without this.
+  - url: https://github.com/facebook/zstd/releases/download/v${{ zstd_version }}/zstd-${{ zstd_version }}.tar.gz
+    sha256: eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3
+    target_directory: src/zstd
+
+build:
+  number: 0
+  # linux-64 only for the initial submission. There is no Windows build, osx-64
+  # cannot finish inside CI time limits, and osx-arm64 / linux-aarch64 will be
+  # enabled at the feedstock stage.
+  skip:
+    - not (linux and x86_64)
+  prefix_detection:
+    # Do NOT rewrite the build prefix inside the ELF binaries: GCC's driver
+    # constant-folds strlen() of the compiled-in prefix, so shortening the
+    # embedded string at install time corrupts its specs-file lookup
+    # ("<prefix>/lib/gcc/: Is a directory"). Left untouched, the baked-in build
+    # path simply doesn't exist at runtime and GCC falls back to its fully
+    # supported argv[0]-relative self-relocation.
+    ignore_binary_files: true
+
+requirements:
+  build:
+    # conda-forge compilers + sysroot: the glibc floor comes from the pinned
+    # sysroot (see variants.yaml) via its strong run export (__glibc >=2.28),
+    # independent of the build host.
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - make
+    - gawk
+    - sed
+    - bison
+    # bison shells out to GNU m4 when grammars are regenerated at build time;
+    # without it in the env, macOS falls back to Xcode's BSD gm4
+    - m4
+    - flex
+    # Real makeinfo everywhere: Arm's git snapshot ships no prebuilt .info
+    # files, so binutils genuinely builds its docs (deleted from the package
+    # afterwards). Stubbing MAKEINFO=true does not work — configure probes
+    # `$MAKEINFO --version`, rejects the silent stub, and substitutes the
+    # `missing` script, which exits 127 at doc/bfd.info.
+    - texinfo
+    # The build scripts use greadlink on Darwin (set_darwin_envvars).
+    - if: osx
+      then: coreutils
+    # Modern config.sub/config.guess for the snapshot's 2018-era prerequisite
+    # libraries, whose bundled copies predate the arm64-apple triple.
+    - if: osx
+      then: gnuconfig
+    - gperf
+    - diffutils
+    - bc
+    - autoconf
+    - automake
+    - libtool
+    - file
+    # The build scripts drive a few helpers through python3.
+    - python
+    # Deliberately NOT ncurses/expat/xz/zlib: gdb links its termcap stub when
+    # none is found, and any conda .so dependency would become a NEEDED entry
+    # that cannot be resolved at runtime (binary prefix relocation is off, so
+    # baked rpaths are dead). Host binaries must depend on glibc only.
+  # The host binaries link libstdc++/libgcc statically (see build.sh), so the
+  # compilers' run exports are not real runtime requirements — only the
+  # sysroot's __glibc export is. On macOS the binaries link the system
+  # libc++, not conda's libcxx, so clangxx's export does not apply either.
+  ignore_run_exports:
+    by_name:
+      - libstdcxx
+      - libgcc
+      - libcxx
+
+tests:
+  - script:
+      - arm-none-eabi-gcc --version
+      - arm-none-eabi-gcc -print-multi-lib
+      - arm-none-eabi-gdb --version
+      # Full compile+link against newlib. nosys.specs supplies the syscall
+      # stubs a bare-metal link would otherwise be missing.
+      - arm-none-eabi-gcc -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 --specs=nosys.specs tests/hello.c -o hello
+      - arm-none-eabi-objdump -d hello | head -n 40
+      # Same link against newlib-nano, proving the nano libraries were merged
+      # into the install tree (libc_nano.a et al.) and nano.specs resolves.
+      - arm-none-eabi-gcc -mcpu=cortex-m0 --specs=nano.specs --specs=nosys.specs tests/hello.c -o hello-nano
+      - arm-none-eabi-size hello hello-nano
+    files:
+      recipe:
+        - tests/hello.c
+
+about:
+  summary: Arm GNU Toolchain (arm-none-eabi GCC, binutils, newlib, newlib-nano, GDB) for bare-metal Arm targets
+  description: |
+    Bare-metal Arm toolchain built from Arm's official source snapshot using
+    Arm's own build scripts (gnu-devtools-for-arm), rather than repackaging the
+    prebuilt binary release.
+
+    This build ships the R/M-profile multilibs (Cortex-M and Cortex-R), and GDB
+    is built without Python support so the host binaries depend on glibc alone.
+  license: GPL-3.0-or-later WITH GCC-exception-3.1
+  license_file:
+    - src/gcc/COPYING3
+    - src/gcc/COPYING3.LIB
+    - src/gcc/COPYING.RUNTIME
+    - src/binutils-gdb/COPYING
+    - src/newlib-cygwin/COPYING.NEWLIB
+    - src/newlib-cygwin/COPYING.LIBGLOSS
+    - src/gnu-devtools-for-arm/LICENSE.txt
+    # zstd is statically linked into the host binaries (gcc --with-zstd).
+    - src/zstd/LICENSE
+  homepage: https://developer.arm.com/Tools%20and%20Software/GNU%20Toolchain
+  repository: https://gitlab.arm.com/tooling/gnu-devtools-for-arm
+
+extra:
+  recipe-maintainers:
+    - EliaCereda
