@@ -1,0 +1,63 @@
+schema_version: 1
+
+context:
+  name: softioc
+  version: 4.7.2
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/softioc-${{ version }}.tar.gz
+  sha256: 993ef8f6b81f0908baa4403422068334757057f006a61f554c450755c9ebf0c6
+  patches:
+    # Link against the epics-base and pvxs conda packages instead of the
+    # setuptools_dso-based epicscorelibs/pvxslibs wheels
+    - patches/0001-use-epics-base-and-pvxs-conda-packages.patch
+
+build:
+  number: 0
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    entry_points:
+      - pythonSoftIOC = softioc.__main__:main
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+  host:
+    - python
+    - setuptools
+    - wheel
+    - pip
+    - epicscorelibs >=7.0.10.99.0.1
+    - epics-base
+  run:
+    - python
+    - epicscorelibs >=7.0.10.99.0.1
+    - epics-base
+    - pvxs
+    - numpy
+    - epicsdbbuilder >=1.4
+    - pyyaml >=6.0
+
+tests:
+  - python:
+      imports:
+        - softioc
+        - softioc.builder
+      pip_check: true
+  - script:
+      - pythonSoftIOC --help
+
+about:
+  summary: Embed an EPICS IOC in a Python process
+  license: Apache-2.0
+  license_file: LICENSE
+  homepage: https://github.com/DiamondLightSource/pythonSoftIOC
+
+extra:
+  recipe-maintainers:
+    - jwlodek
