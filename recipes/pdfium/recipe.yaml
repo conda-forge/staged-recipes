@@ -1,0 +1,121 @@
+context:
+  name: pdfium
+  # Chromium version matching the pdfium `chromium/<build>` branch.
+  # Resolve with: git ls-remote --tags https://chromium.googlesource.com/chromium/src.git '*.*.<build>.0'
+  version: "159.0.8149.0"
+  build: "8149"
+  # HEAD of https://pdfium.googlesource.com/pdfium/+/refs/heads/chromium/8149
+  pdfium_rev: 6688c576fd851f4159c6fae39396da50939de110
+  # Revisions of the vendored build dependencies, taken from pdfium's DEPS file at `pdfium_rev`.
+  build_rev: 0c62137b8623a3fab2c6aa5d7c94f719b3aa31f6
+  abseil_rev: 56722f9eb6f40fb1a140caffd36e8f1f61b57aaf
+  fast_float_rev: 42f254836ee416ffcf2f4e6576260003ac33d48c
+  simdutf_rev: f7356eed293f8208c40b3c1b344a50bd70971983
+  dragonbox_rev: beeeef91cf6fef89a4d4ba5e95d47ca64ccb3a44
+  highway_rev: 2607d3b5b0113992fe84d3848859eae13b3b52c1
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+# googlesource.com does not provide stable source tarballs, hence the git sources.
+source:
+  - git: https://pdfium.googlesource.com/pdfium.git
+    rev: ${{ pdfium_rev }}
+  - git: https://chromium.googlesource.com/chromium/src/build.git
+    rev: ${{ build_rev }}
+    target_directory: build
+  - git: https://chromium.googlesource.com/chromium/src/third_party/abseil-cpp.git
+    rev: ${{ abseil_rev }}
+    target_directory: third_party/abseil-cpp
+  - git: https://chromium.googlesource.com/external/github.com/fastfloat/fast_float.git
+    rev: ${{ fast_float_rev }}
+    target_directory: third_party/fast_float/src
+  - git: https://chromium.googlesource.com/chromium/src/third_party/simdutf.git
+    rev: ${{ simdutf_rev }}
+    target_directory: third_party/simdutf
+  - git: https://chromium.googlesource.com/external/github.com/jk-jeon/dragonbox.git
+    rev: ${{ dragonbox_rev }}
+    target_directory: third_party/dragonbox/src
+  - git: https://chromium.googlesource.com/external/github.com/google/highway.git
+    rev: ${{ highway_rev }}
+    target_directory: third_party/highway/src
+  # Needed by //build to generate shim headers for unbundled system libraries.
+  - url: https://raw.githubusercontent.com/chromium/chromium/${{ version }}/tools/generate_shim_headers/generate_shim_headers.py
+    sha256: 21df5ac8b9e5d3831f97cc168f484164a6717c52023214ef203cc4a34c484724
+    file_name: generate_shim_headers.py
+    target_directory: tools/generate_shim_headers
+
+build:
+  number: 0
+  skip:
+    - not linux
+  script:
+    file: build.sh
+    env:
+      PDFIUM_BUILD: ${{ build }}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    # pdfium requires (at least) the gn revision pinned in its DEPS (`gn_version`),
+    # i.e. 98f6dd2be85d0eba8f31ee3ad1def5402383cff3 for chromium/8149.
+    - gn >=0.0.20261028191142
+    - ninja
+    - pkgconf
+    - python
+  host:
+    - freetype
+    - harfbuzz
+    - icu
+    - lcms2
+    - libjpeg-turbo
+    - openjpeg
+    - zlib
+
+tests:
+  - package_contents:
+      lib:
+        - pdfium
+      include:
+        - pdfium/fpdfview.h
+        - pdfium/fpdf_edit.h
+        - pdfium/cpp/fpdf_scopers.h
+      files:
+        - lib/pkgconfig/libpdfium.pc
+  - script:
+      - pkg-config --exact-version=${{ version }} libpdfium
+      - ${CC} ${CFLAGS} $(pkg-config --cflags libpdfium) -o test_pdfium test_pdfium.c ${LDFLAGS} $(pkg-config --libs libpdfium)
+      - ./test_pdfium
+    files:
+      recipe:
+        - test_pdfium.c
+    requirements:
+      run:
+        - ${{ compiler('c') }}
+        - pkgconf
+
+about:
+  homepage: https://pdfium.googlesource.com/pdfium/
+  repository: https://pdfium.googlesource.com/pdfium/
+  documentation: https://pdfium.googlesource.com/pdfium/+/refs/heads/main/docs/getting-started.md
+  summary: PDF generation and rendering library
+  description: |
+    PDFium is the open-source PDF rendering engine used by the Chromium project.
+    This build is configured without V8 (JavaScript) and XFA support, and links
+    against conda-forge provided system libraries (freetype, harfbuzz, icu,
+    lcms2, libjpeg-turbo, openjpeg, zlib).
+  license: BSD-3-Clause AND Apache-2.0 AND MIT AND BSL-1.0
+  license_file:
+    - LICENSE
+    - third_party/abseil-cpp/LICENSE
+    - third_party/fast_float/src/LICENSE-MIT
+    - third_party/simdutf/LICENSE
+    - third_party/dragonbox/src/LICENSE-Boost
+    - third_party/highway/src/LICENSE
+
+extra:
+  recipe-maintainers:
+    - carlodri
