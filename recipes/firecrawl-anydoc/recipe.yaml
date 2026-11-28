@@ -1,0 +1,103 @@
+context:
+  version: "0.2.4"
+
+package:
+  name: firecrawl-anydoc
+  version: ${{ version }}
+
+source:
+  url: https://files.pythonhosted.org/packages/source/f/firecrawl-anydoc/firecrawl_anydoc-${{ version }}.tar.gz
+  sha256: 3e29460272fea81cde08fd5af11f6b0f1ff05919214ddc939867f72362c83032
+
+build:
+  number: 0
+  skip: is_abi3 and not is_python_min
+  python:
+    version_independent: ${{ is_abi3 }}
+  script:
+    interpreter: brush
+    content: |
+      export CARGO_HOME="${SRC_DIR}/.cargo"
+      cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+      "${PYTHON}" -m pip install . --no-deps --no-build-isolation -vv
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - brush
+    - cargo-bundle-licenses
+  host:
+    - if: is_abi3
+      then: python-abi3
+    - python
+    - pip
+    - maturin >=1.9,<2
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - anydoc
+        - anydoc._anydoc
+      pip_check: true
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
+  - script:
+      interpreter: python
+      content: |
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+
+        import anydoc
+
+        csv = b"name,value\nalpha,42\n"
+        markdown = anydoc.to_markdown_bytes(csv, format="csv")
+        assert "alpha" in markdown and "42" in markdown, markdown
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "sample.csv"
+            path.write_bytes(csv)
+            assert anydoc.to_markdown(path) == markdown
+        rtf = br"{\rtf1\ansi Hello from conda-forge.}"
+        assert "Hello from conda-forge." in anydoc.to_markdown_bytes(rtf)
+
+  - if: is_abi3
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        interpreter: python
+        content: |
+          import subprocess
+          import anydoc._anydoc as extension
+
+          # Upstream's PyO3 feature is abi3-py310.
+          subprocess.run([
+              "abi3audit", extension.__file__, "--strict", "--verbose",
+              "--assume-minimum-abi3", "3.10",
+          ], check=True)
+
+about:
+  homepage: https://firecrawl.github.io/anydoc
+  repository: https://github.com/firecrawl/anydoc
+  documentation: https://github.com/firecrawl/anydoc/blob/v${{ version }}/README.md
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  summary: Convert Word, PowerPoint, Excel, OpenDocument, RTF, EPUB, CSV, and PDF to clean Markdown. Built in Rust, with Node.js and Python bindings.
+  description: |
+    Fast Rust library that converts documents (Word, PowerPoint, Excel, OpenDocument, RTF, EPUB, CSV, and PDF) into clean GitHub-Flavored Markdown. Includes bindings for [Node.js](node/README.md), [Python](python/README.md), and the [browser](wasm/README.md) (WebAssembly).
+
+    Built by [Firecrawl](https://firecrawl.dev) to turn any office document into LLM-ready Markdown in single-digit milliseconds, with one consistent output no matter which format goes in. It powers [Firecrawl Parse](https://firecrawl.dev/parse), so if you'd rather not run it yourself, the hosted API gives you the same conversion plus our OCR models for the scanned pages anydoc can't read on its own.
+
+    **[Try it in your browser](https://firecrawl.github.io/anydoc/)**: the demo page runs the library as WebAssembly, so files are converted locally and never leave your machine.
+
+extra:
+  recipe-maintainers:
+    - eunos-1128
