@@ -1,0 +1,76 @@
+From 8a4bd52a2485e9ede3eb42d9999978c93429074b Mon Sep 17 00:00:00 2001
+From: stevenliuyi <stevenliuyi@gmail.com>
+Date: Tue, 25 Aug 2026 16:39:30 -0400
+Subject: [PATCH] Use system rapidjson
+
+The vendored copy is rapidjson 0.11 (2012). Port to the 1.x API
+(FileStream removed, AddMember() no longer takes const char*) and
+find the headers with find_package(RapidJSON).
+---
+ CMakeLists.txt    |  3 ++-
+ src/amg_config.cu | 14 +++++++++-----
+ 2 files changed, 11 insertions(+), 6 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 0de63cf..9276450 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -131,7 +131,8 @@ set(AMGX_INCLUDE_EXTERNAL True CACHE BOOL "Include external 3rd party libraries"
+ if (AMGX_INCLUDE_EXTERNAL)
+   set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DRAPIDJSON_DEFINED)
+   set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -DRAPIDJSON_DEFINED)
+-  include_directories("${CMAKE_CURRENT_SOURCE_DIR}/external/rapidjson/include")
++  find_package(RapidJSON REQUIRED)
++  include_directories(${RapidJSON_INCLUDE_DIRS})
+ endif (AMGX_INCLUDE_EXTERNAL)
+ 
+ set(CMAKE_NO_MPI false CACHE BOOL "Force non-MPI build")
+diff --git a/src/amg_config.cu b/src/amg_config.cu
+index 0e67f4a..97fae73 100644
+--- a/src/amg_config.cu
++++ b/src/amg_config.cu
+@@ -18,7 +18,7 @@
+ #ifdef RAPIDJSON_DEFINED
+ #include "rapidjson/document.h"
+ #include "rapidjson/prettywriter.h"
+-#include "rapidjson/filestream.h"
++#include "rapidjson/filewritestream.h"
+ #endif
+ 
+ namespace amgx
+@@ -871,14 +871,16 @@ AMGX_ERROR AMG_Config::write_parameters_description_json(const char *filename)
+             // new entry
+             rapidjson::Value param_object(rapidjson::kObjectType);
+             // adding description
+-            param_object.AddMember("description", iter->second.description.c_str(), json_out.GetAllocator());
++            rapidjson::Value param_desc_str(iter->second.description.c_str(), json_out.GetAllocator());
++            param_object.AddMember("description", param_desc_str, json_out.GetAllocator());
+             // adding parameter type name
+             rapidjson::Value param_type(AMG_Config::getParamTypeName(iter->second.type).c_str(), json_out.GetAllocator());
+             param_object.AddMember("parameter_type", param_type, json_out.GetAllocator());
+             //adding default value
+             fillJSONValueWithParameter(param_object, iter->second, json_out.GetAllocator());
+             // adding entry to output doc
+-            json_out.AddMember(iter->first.c_str(), param_object, json_out.GetAllocator());
++            rapidjson::Value param_name(iter->first.c_str(), json_out.GetAllocator());
++            json_out.AddMember(param_name, param_object, json_out.GetAllocator());
+         }
+ 
+         // write json cfg to stdout
+@@ -890,9 +892,11 @@ AMGX_ERROR AMG_Config::write_parameters_description_json(const char *filename)
+             FatalError(tmp.c_str(), AMGX_ERR_IO);
+         }
+ 
+-        rapidjson::FileStream f(fout);
+-        rapidjson::PrettyWriter<rapidjson::FileStream> writer(f);
++        char write_buffer[65536];
++        rapidjson::FileWriteStream f(fout, write_buffer, sizeof(write_buffer));
++        rapidjson::PrettyWriter<rapidjson::FileWriteStream> writer(f);
+         json_out.Accept(writer);
++        f.Flush();
+         fclose(fout);
+ #endif
+     }
+-- 
+2.34.1
+
