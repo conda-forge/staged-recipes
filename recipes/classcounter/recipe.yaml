@@ -1,0 +1,59 @@
+context:
+  version: "0.2.1"
+
+package:
+  name: classcounter
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/c/classcounter/classcounter-${{ version }}.tar.gz
+  sha256: 0ce100e2fff53479e18674b7bc61e95000093bd107769282d6cc1b4e06623810
+
+build:
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - hatchling
+    - hatch-vcs
+  run:
+    - python >=${{ python_min }}
+    - numpy >=1.24
+
+tests:
+  - python:
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+      imports:
+        - classcounter
+      pip_check: true
+  - files:
+      source:
+        - tests/
+        - pyproject.toml
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+        - pytest
+    script:
+      # the installed metadata must carry the release version, not a 0.0.0 fallback
+      - python -c "from importlib.metadata import version; v = version('classcounter'); assert v == '${{ version }}', v"
+      # torch, numba and rasterio are optional and not installed, so their tests
+      # skip; this one imports torch without skipping
+      - pytest tests -v --deselect tests/test_errors.py::TestImportErrors::test_count_torch_guard_without_torch
+
+about:
+  homepage: https://github.com/DPIRD-DMA/ClassCounter
+  repository: https://github.com/DPIRD-DMA/ClassCounter
+  summary: Fast class counting for numpy arrays, torch tensors, and GeoTIFFs
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - wrignj08
