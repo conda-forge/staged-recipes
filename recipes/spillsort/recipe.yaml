@@ -1,0 +1,77 @@
+schema_version: 1
+
+context:
+  name: spillsort
+  version: "0.1.1"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 6fd8a3cd8093118dda97e9c38f8f581e479dd8e15648acc5939f76070dee8968
+
+build:
+  number: 0
+  skip: is_abi3 and not is_python_min
+  python:
+    version_independent: ${{ true if is_abi3 }}
+  script:
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.15,<2
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - if: is_abi3
+      then: python-abi3
+    - python
+    - maturin >=1.15,<2
+    - pip
+  run:
+    - python
+    - typing-extensions >=4.12
+
+tests:
+  - python:
+      imports:
+        - spillsort
+      pip_check: true
+      python_version:
+        - if: is_abi3
+          then: ${{ python_min }}.*
+        - "*"
+  - if: is_abi3 and build_platform == target_platform
+    then:
+      requirements:
+        run:
+          - abi3audit
+      script:
+        - if: unix
+          then: abi3audit $SP_DIR/spillsort/_spillsort.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+          else: abi3audit %SP_DIR%/spillsort/_spillsort.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+
+about:
+  homepage: https://github.com/clintval/spillsort
+  summary: "Sort more items than fit in memory: sorted runs spill to disk and merge as they are read."
+  license: MIT
+  license_file:
+    - LICENSE
+    - NOTICE
+    - THIRDPARTY.yml
+  repository: https://github.com/clintval/spillsort
+  documentation: https://github.com/clintval/spillsort/blob/${{ version }}/README.md
+
+extra:
+  recipe-maintainers:
+    - clintval
