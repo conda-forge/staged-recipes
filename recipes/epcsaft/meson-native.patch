@@ -1,0 +1,244 @@
+--- a/engine/meson.build
++++ b/engine/meson.build
+@@ -14,7 +14,12 @@
+     'backend_max_links=1',
+   ],
+ )
+-py = import('python').find_installation('python3', pure: false)
++build_mode = get_option('epcsaft_build')
++if build_mode == 'native'
++  py = import('python').find_installation(pure: false)
++else
++  py = import('python').find_installation('python3', pure: false)
++endif
+ cpp = meson.get_compiler('cpp')
+ windows = host_machine.system() == 'windows'
+ linux = host_machine.system() == 'linux'
+@@ -47,33 +52,32 @@
+   version: ['>=2.2.0', '<2.3.0'],
+ )
+ 
+-nanobind_paths = run_command(
+-  py, '-c',
+-  '''
+-import nanobind
+-from pathlib import Path
+-import sys, tomllib
+-requirements = tomllib.loads(Path(sys.argv[1]).read_text())["project"]["dependencies"]
+-requirement = next(d for d in requirements if d.startswith("nanobind=="))
+-assert nanobind.__version__ == requirement.split("==")[1]
+-for path in (nanobind.include_dir(), nanobind.source_dir(), Path(nanobind.__file__).parent / "ext/robin_map/include"):
+-    print(path)
+-''',
+-  meson.project_source_root() / '../pyproject.toml',
+-  check: true,
+-).stdout().strip().split('\n')
+-nanobind_dep = declare_dependency(
+-  include_directories: include_directories(nanobind_paths[0], is_system: true),
+-)
+-nanobind_support = static_library(
+-  'nanobind_support', nanobind_paths[1] / 'nb_combined.cpp',
+-  dependencies: [nanobind_dep, py.dependency()],
+-  include_directories: include_directories(nanobind_paths[2], is_system: true),
+-  cpp_args: windows ? ['/EHsc'] : ['-fno-strict-aliasing', '-ffunction-sections', '-fdata-sections'],
+-  override_options: ['b_lto=false'],
+-  gnu_symbol_visibility: 'hidden',
+-  install: false,
+-)
++native_inc = include_directories('native')
++if build_mode == 'bindings'
++  fs = import('fs')
++  staged = meson.current_source_dir() / 'conda-native'
++  suffix = {'windows': '.dll', 'darwin': '.dylib'}.get(host_machine.system(), '.so')
++  lib_prefix = windows ? '' : 'lib'
++  staged_files = []
++  foreach name : ['epcsaft_native', 'epcsaft_asl']
++    staged_files += [staged / (lib_prefix + name + suffix)]
++    if windows
++      staged_files += [staged / (name + '.lib')]
++    endif
++  endforeach
++  foreach path : staged_files + [staged / 'cppad/configure.hpp']
++    assert(fs.is_file(path), 'Missing staged native file: ' + path)
++  endforeach
++  install_data(staged_files, install_dir: py.get_install_dir() / 'epcsaft')
++  native_link_dep = declare_dependency(link_args: [
++    staged / (windows ? 'epcsaft_native.lib' : (lib_prefix + 'epcsaft_native' + suffix)),
++  ])
++  cppad_headers_dep = declare_dependency(include_directories: include_directories(
++    'conda-native', 'build/subprojects/CppAD-20250000.3/include', is_system: true,
++  ))
++  subdir('bindings')
++  subdir_done()
++endif
+ 
+ cppad_project = subproject('cppad')
+ cppad_headers_dep = cppad_project.get_variable('cppad_headers_dep')
+@@ -99,10 +103,6 @@
+   highs_conf_file = highs_project.get_variable('highs_conf_file')
+ endif
+ 
+-# One include root. A layer names its neighbours by path ("properties/density.hpp"),
+-# which is what makes the include direction checkable.
+-native_inc = include_directories('native')
+-
+ # The order is the layer order. Nothing here may include nanobind — that is
+ # bindings/, and it is the only place. contributions/ is header-only: the terms
+ # are templated so one source both evaluates a double and records a tape.
+@@ -152,8 +152,8 @@
+   cpp_args: native_warnings + native_export_args,
+   dependencies: native_deps,
+   include_directories: native_inc,
+-  install: true,
+-  install_dir: join_paths(py.get_install_dir(), 'epcsaft'),
++  install: build_mode == 'all',
++  install_dir: build_mode == 'all' ? py.get_install_dir() / 'epcsaft' : false,
+   build_rpath: native_rpath,
+   install_rpath: native_rpath,
+ )
+@@ -185,40 +185,13 @@
+   link_args: release_link_args + asl_link_args,
+   kwargs: asl_export_options,
+   link_with: epcsaft_private,
+-  install: true,
+-  install_dir: join_paths(py.get_install_dir(), 'epcsaft'),
+-)
+-
+-core_extension = py.extension_module(
+-  '_core',
+-  files('native/bindings/module.cpp', 'native/bindings/eos_bindings.cpp',
+-        'native/bindings/diagnostics_bindings.cpp',
+-        'native/bindings/equilibrium_bindings.cpp',
+-        'native/bindings/regression_bindings.cpp'),
+-  cpp_args: native_warnings,
+-  # Keep binding -O1 for the measured framework comparison; native calculations stay at -O3.
+-  override_options: ['optimization=1', 'b_lto=false'],
+-  dependencies: [
+-    nanobind_dep,
+-    ipopt_dep,
+-    eigen_dep,
+-    ceres_dep,
+-    cppad_headers_dep,
+-  ],
+-  include_directories: native_inc,
+-  install: true,
+-  link_args: release_link_args,
+-  link_with: [epcsaft_native, nanobind_support],
+-  build_rpath: native_rpath,
+-  install_rpath: native_rpath,
+-  subdir: 'epcsaft',
+-)
+-if linux
+-  # An extension module links with unresolved Python symbols, so a binding call to a symbol without EPC_API fails only
+-  # at import. Relinking its objects with every symbol resolved fails the build the way the Windows link does (#41).
+-  shared_module('core_export_check', objects: core_extension.extract_all_objects(recursive: false),
+-    link_with: [epcsaft_native, nanobind_support], dependencies: [py.dependency(embed: true), ipopt_dep, ceres_dep],
+-    link_args: ['-Wl,-z,defs'], install: false)
++  install: build_mode == 'all',
++  install_dir: build_mode == 'all' ? py.get_install_dir() / 'epcsaft' : false,
++)
++
++if build_mode == 'all'
++  native_link_dep = declare_dependency(link_with: epcsaft_native)
++  subdir('bindings')
+ endif
+ 
+ contributions_checks = executable(
+@@ -357,18 +330,6 @@
+ )
+ test('specification', specification_checks)
+ 
+-# Python ships alone: the native tree lives outside src/, so there is nothing
+-# to exclude but caches.
+-install_subdir(
+-  'src/epcsaft',
+-  exclude_directories: [
+-    '__pycache__',
+-    'equilibrium/__pycache__',
+-  ],
+-  install_dir: py.get_install_dir(),
+-)
+-
+-
+ if host_machine.system() == 'windows'
+   fit_windows_checks = executable('fit_windows_checks', 'tests/native/fit_windows_checks.cpp',
+     cpp_args: native_warnings, include_directories: native_inc, dependencies: cpp.find_library('advapi32'),
+--- /dev/null
++++ b/engine/meson.options
+@@ -0,0 +1,2 @@
++option('epcsaft_build', type: 'combo', choices: ['all', 'native', 'bindings'], value: 'all',
++  description: 'Build the Engine, stage its native libraries, or build bindings against staged libraries')
+--- /dev/null
++++ b/engine/bindings/meson.build
+@@ -0,0 +1,71 @@
++nanobind_paths = run_command(
++  py, '-c',
++  '''
++import nanobind
++from pathlib import Path
++import sys, tomllib
++requirements = tomllib.loads(Path(sys.argv[1]).read_text())["project"]["dependencies"]
++requirement = next(d for d in requirements if d.startswith("nanobind=="))
++assert nanobind.__version__ == requirement.split("==")[1]
++for path in (nanobind.include_dir(), nanobind.source_dir(), Path(nanobind.__file__).parent / "ext/robin_map/include"):
++    print(path)
++''',
++  meson.project_source_root() / '../pyproject.toml',
++  check: true,
++).stdout().strip().split('\n')
++nanobind_dep = declare_dependency(
++  include_directories: include_directories(nanobind_paths[0], is_system: true),
++)
++nanobind_support = static_library(
++  'nanobind_support', nanobind_paths[1] / 'nb_combined.cpp',
++  dependencies: [nanobind_dep, py.dependency()],
++  include_directories: include_directories(nanobind_paths[2], is_system: true),
++  cpp_args: windows ? ['/EHsc'] : ['-fno-strict-aliasing', '-ffunction-sections', '-fdata-sections'],
++  override_options: ['b_lto=false'],
++  gnu_symbol_visibility: 'hidden',
++  install: false,
++)
++
++core_extension = py.extension_module(
++  '_core',
++  files('../native/bindings/module.cpp', '../native/bindings/eos_bindings.cpp',
++        '../native/bindings/diagnostics_bindings.cpp',
++        '../native/bindings/equilibrium_bindings.cpp',
++        '../native/bindings/regression_bindings.cpp'),
++  cpp_args: native_warnings,
++  # Keep binding -O1 for the measured framework comparison; native calculations stay at -O3.
++  override_options: ['optimization=1', 'b_lto=false'],
++  dependencies: [
++    nanobind_dep,
++    native_link_dep,
++    ipopt_dep,
++    eigen_dep,
++    ceres_dep,
++    cppad_headers_dep,
++  ],
++  include_directories: native_inc,
++  install: true,
++  link_args: release_link_args,
++  link_with: nanobind_support,
++  build_rpath: native_rpath,
++  install_rpath: native_rpath,
++  subdir: 'epcsaft',
++)
++if linux
++  # An extension module links with unresolved Python symbols, so a binding call to a symbol without EPC_API fails only
++  # at import. Relinking its objects with every symbol resolved fails the build the way the Windows link does (#41).
++  shared_module('core_export_check', objects: core_extension.extract_all_objects(recursive: false),
++    link_with: nanobind_support, dependencies: [py.dependency(embed: true), native_link_dep, ipopt_dep, ceres_dep],
++    link_args: ['-Wl,-z,defs'], install: false)
++endif
++
++# Python ships alone: the native tree lives outside src/, so there is nothing
++# to exclude but caches.
++install_subdir(
++  meson.project_source_root() / 'src/epcsaft',
++  exclude_directories: [
++    '__pycache__',
++    'equilibrium/__pycache__',
++  ],
++  install_dir: py.get_install_dir(),
++)
