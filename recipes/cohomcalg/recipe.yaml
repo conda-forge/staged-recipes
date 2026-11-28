@@ -1,0 +1,68 @@
+context:
+  version: "0.32"
+
+package:
+  name: cohomcalg
+  version: ${{ version }}
+
+source:
+  # bundles a patched polylib; conda-forge's lacks the fixes and the 64-bit library
+  url: https://github.com/BenjaminJurke/cohomCalg/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 367c52b99c0b0a4794b215181439bf54abe4998872d3ef25d793bc13c4d40e42
+  patches:
+    - standard-make-variables.patch
+
+build:
+  skip:
+    - win
+  script:
+    - make -j${CPU_COUNT}
+    - mkdir -p "$PREFIX/bin"
+    - install -m755 bin/cohomcalg "$PREFIX/bin/cohomcalg"
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - make
+
+tests:
+  - package_contents:
+      bin:
+        - cohomcalg
+  - files:
+      source:
+        - bin/CP2.in
+        - bin/dP1.in
+        - bin/dP3.in
+        - bin/P31SU7.in
+        - bin/Quintic.in
+        - bin/WCP11114.in
+    script:
+      - cohomcalg bin/CP2.in > CP2.out
+      - grep -F "dim H^i(A; O( -16 )) = (   0,   0, 105 )" CP2.out
+      - cohomcalg bin/dP1.in
+      - cohomcalg bin/dP3.in
+      - cohomcalg bin/P31SU7.in
+      - cohomcalg bin/Quintic.in
+      - cohomcalg bin/WCP11114.in
+
+about:
+  homepage: https://github.com/BenjaminJurke/cohomCalg
+  summary: 'Sheaf cohomology of line bundles on toric varieties'
+  description: |
+    The algorithm for the computation of sheaf cohomologies for line
+    bundles on toric varieties presented in "Cohomology of Line Bundles:
+    A Computational Algorithm" by Ralph Blumenhagen, Benjamin Jurke,
+    Thorsten Rahn, and Helmut Roschy has been implemented in a convenient
+    and high-performance C/C++ application called cohomCalg.
+  license: GPL-3.0-or-later
+  license_file:
+    - LICENSE
+    - source/polylib_mod/COPYING
+
+extra:
+  recipe-maintainers:
+    - d-torrance
