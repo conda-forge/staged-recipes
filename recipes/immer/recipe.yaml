@@ -1,0 +1,77 @@
+schema_version: 1
+
+context:
+  version: "0.9.1"
+
+package:
+  name: immer
+  version: ${{ version }}
+
+source:
+  url: https://github.com/arximboldi/immer/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: b18b92ba60ec3186dc36ef671d3c2ae542cbb63eb6dc0e258476c6111a67c971
+  patches:
+    - cmake-project.patch
+
+build:
+  number: 0
+  script:
+    file: ${{ 'build.bat' if win else 'build.sh' }}
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  # Only headers and CMake metadata are installed; no compiler runtime is needed.
+  ignore_run_exports:
+    from_package:
+      - ${{ compiler('cxx') }}
+      - ${{ stdlib('c') }}
+
+tests:
+  - package_contents:
+      include:
+        - immer/vector.hpp
+        - immer/map.hpp
+        - immer/set.hpp
+        - immer/flex_vector.hpp
+      files:
+        - if: win
+          then: Library/lib/cmake/Immer/ImmerConfig.cmake
+          else: lib/cmake/Immer/ImmerConfig.cmake
+        - if: win
+          then: Library/lib/cmake/Immer/ImmerConfigVersion.cmake
+          else: lib/cmake/Immer/ImmerConfigVersion.cmake
+  - script:
+      - cmake -S test -B test-build -G Ninja
+      - cmake --build test-build
+      - if: win
+        then: test-build\immer-smoke.exe
+        else: ./test-build/immer-smoke
+    files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+
+about:
+  homepage: https://github.com/arximboldi/immer
+  summary: Persistent and immutable data structures for C++
+  description: |
+    Immer is a header-only C++ library of persistent and immutable data
+    structures. Its containers use structural sharing to support efficient
+    updates while preserving previous versions of each value.
+  license: BSL-1.0
+  license_file: LICENSE
+  documentation: https://sinusoid.es/immer/
+  repository: https://github.com/arximboldi/immer
+
+extra:
+  recipe-maintainers:
+    - phreed
