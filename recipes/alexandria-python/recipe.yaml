@@ -12,38 +12,29 @@ source:
 # The Python package act of ACT, which runs the alexandria program of the
 # package alexandria. It is pure Python. The classes of ACT (act.ForceField,
 # act.Molecule and so on) are in the compiled module act._core, which this
-# package does not have yet: act.classes_available() is False.
+# package does not have yet: act.classes_available() is False. It is not
+# noarch since it needs alexandria, which is only built for some platforms;
+# with nothing to compile, a build per Python version takes seconds.
 build:
   number: 0
-  noarch: python
+  # The platforms of the package alexandria
+  skip:
+    - not ((osx and arm64) or (linux and (x86_64 or aarch64)))
   script:
-    - if: unix
-      then:
-        - mkdir -p "${SP_DIR}/act"
-        - cp python/act/*.py "${SP_DIR}/act/"
-        # As the installation of ACT with CMake does: the program relative to
-        # the package, lib/pythonX.Y/site-packages/act, such that the package
-        # runs the alexandria of its environment, also when that is not in
-        # the PATH
-        - printf 'EXECUTABLE = "../../../../bin/alexandria"\n' > "${SP_DIR}/act/_installed.py"
-      else:
-        # The package is for Linux and macOS, where alexandria is; the
-        # build on Windows only checks that the package can be imported
-        - mkdir "%SP_DIR%\act"
-        - copy python\act\*.py "%SP_DIR%\act\"
+    - mkdir -p "${SP_DIR}/act"
+    - cp python/act/*.py "${SP_DIR}/act/"
+    # As the installation of ACT with CMake does: the program relative to the
+    # package, lib/pythonX.Y/site-packages/act, such that the package runs the
+    # alexandria of its environment, also when that is not in the PATH
+    - printf 'EXECUTABLE = "../../../../bin/alexandria"\n' > "${SP_DIR}/act/_installed.py"
 
 requirements:
   host:
-    - python ${{ python_min }}.*
+    - python
   run:
-    - python >=${{ python_min }}
-    - if: unix
-      then:
-        - __unix
-        # The program and its data files
-        - alexandria ==${{ version }}
-      else:
-        - __win
+    - python
+    # The program and its data files
+    - alexandria ==${{ version }}
 
 tests:
   - python:
@@ -51,22 +42,14 @@ tests:
         - act
         - act.commands
       pip_check: false
-      python_version:
-        - ${{ python_min }}.*
-        - "*"
-  - if: unix
-    then:
-      requirements:
-        run:
-          - python ${{ python_min }}.*
-      files:
-        recipe:
-          - check-act.py
-      script:
-        # MPICH may fail to open the network devices of the test machine, see
-        # build.sh of the recipe alexandria
-        - export UCX_TLS=self,sm,tcp
-        - python check-act.py
+  - files:
+      recipe:
+        - check-act.py
+    script:
+      # MPICH may fail to open the network devices of the test machine, see
+      # build.sh of the recipe alexandria
+      - export UCX_TLS=self,sm,tcp
+      - python check-act.py
 
 about:
   homepage: https://github.com/AlexandriaChemistry/ACT
