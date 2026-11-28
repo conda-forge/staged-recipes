@@ -1,0 +1,91 @@
+schema_version: 1
+
+context:
+  version: "0.7.0"
+
+# The full install, torch included. On PyPI the code is the exege-core distribution and
+# exege a metapackage over its extras; here one package carries the code from the
+# exege-core sdist and every dependency.
+package:
+  name: exege
+  version: ${{ version }}
+
+source:
+  url: https://files.pythonhosted.org/packages/source/e/exege_core/exege_core-${{ version }}.tar.gz
+  sha256: 756b2457887e320d9527d9fe267e760883fa90150286f3e6609a4ec6d57cc5b1
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv
+  python:
+    entry_points:
+      - exege = exege._cli:main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - hatchling
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - click >=8.1
+    # latents
+    - numpy >=1.24
+    - xarray >=2023.1
+    - netcdf4 >=1.6
+    # figures
+    - matplotlib-base >=3.7
+    - cartopy >=0.23
+    # app
+    - streamlit >=1.50
+    # hf
+    - huggingface_hub >=0.23
+    # nn
+    - pytorch >=2.0
+
+tests:
+  - python:
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+      imports:
+        - exege
+        - exege.latents
+        - exege.figures
+        - exege.nn.sae
+      pip_check: true
+  - requirements:
+      run:
+        - python ${{ python_min }}.*
+    script:
+      - exege --help
+      - exege latents toy toy
+      - exege latents info toy
+  # The package's own suite, but for the web app and the figures (whose coastlines are
+  # fetched over the network). src/ is read by the purity tests, not imported.
+  - files:
+      source:
+        - tests/
+        - src/
+        - pyproject.toml
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+        - pytest
+    script:
+      - pytest tests --ignore=tests/test_app.py --ignore=tests/test_figures.py
+
+about:
+  summary: "Tools for understanding and evaluating scientific machine-learning models: latent-space diagnostics, sparse autoencoders, figures, a local app"
+  license: MIT
+  license_file:
+    - LICENSE
+    - NOTICE
+  homepage: https://exege.readthedocs.io
+  repository: https://github.com/mahf708/exege
+  documentation: https://exege.readthedocs.io
+
+extra:
+  recipe-maintainers:
+    - mahf708
