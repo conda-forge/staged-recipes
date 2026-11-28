@@ -1,0 +1,186 @@
+From: conda-forge maintainers
+Subject: [PATCH] Use packaged Boost, Folly, cpptrace and JSON
+
+Keep the patched BDWGC and LLVM 23 CppInterOp sources. External library
+headers remain owned by their runtime packages; explicitly link shared
+dependencies when consuming jank's merged runtime archive.
+
+--- a/compiler+runtime/CMakeLists.txt
++++ b/compiler+runtime/CMakeLists.txt
+@@ -105,6 +105,8 @@
+ set(
+   jank_common_compiler_flags
+   -std=gnu++20
++  # Folly headers include glog during both native and embedded JIT compilation.
++  -DGLOG_USE_GLOG_EXPORT
+   -DJANK_VERSION="${jank_version}"
+   -DJANK_CMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}"
+   # https://groups.google.com/g/llvm-dev/c/W-OweiAjDcU?pli=1
+@@ -440,11 +442,10 @@
+   jank_lib_phase_2
+   jank_static_lib
+   cpptrace::cpptrace
+-  Boost::multiprecision
+   nanobench_lib
+   jankzip_lib
+   bdwgc::gc bdwgc::gctba
+-  folly_lib
++  Folly::folly
+   clangCppInterOp
+ )
+ 
+@@ -491,10 +492,15 @@
+ 
+ include(FetchContent)
+ include(cmake/dependency/bdwgc.cmake)
+-include(cmake/dependency/cpptrace.cmake)
++find_package(cpptrace 1.0.4 CONFIG REQUIRED)
+ include(cmake/dependency/cppinterop.cmake)
+-include(cmake/dependency/boost-multiprecision.cmake)
+-include(cmake/dependency/folly.cmake)
++
++# Folly exports the unnamespaced gflags_shared target without finding gflags.
++# Load it before Folly so CMake resolves the target to libgflags.
++set(GFLAGS_USE_TARGET_NAMESPACE FALSE)
++find_package(gflags CONFIG REQUIRED)
++find_package(folly CONFIG REQUIRED)
++find_package(nlohmann_json 3.12 CONFIG REQUIRED)
+ include(cmake/dependency/isocline.cmake)
+ 
+ if(jank_test)
+@@ -652,18 +654,12 @@
+   SYSTEM
+   PUBLIC
+   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third-party/nanobench/include>"
+-  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third-party/folly>"
+   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third-party/bdwgc/include>"
+   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third-party/immer>"
+   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third-party/zip/src>"
+-  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third-party/cpptrace/include>"
+   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third-party/cppinterop/include>"
+   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third-party/cppinterop/lib>"
+-  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third-party/boost-preprocessor/include>"
+-  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third-party/boost-multiprecision/include>"
+-  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third-party/boost-process/include>"
+   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third-party/stduuid/include/>"
+-  "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third-party/json/include>"
+   "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/third-party/isocline/include>"
+   ${Boost_INCLUDE_DIRS}
+ )
+@@ -671,8 +667,9 @@
+ target_link_libraries(
+   jank_common_lib PRIVATE
+   cpptrace::cpptrace
+-  Boost::multiprecision
+-  Boost::boost
++  Boost::headers
++  Folly::folly
++  nlohmann_json::nlohmann_json
+   nanobench_lib
+   bdwgc::gc bdwgc::gctba
+ )
+@@ -703,6 +700,7 @@
+   endif()
+ endforeach()
+ 
++list(APPEND jank_linker_flags -lfolly -lcpptrace)
+ set(jank_lib_linker_flags_list "")
+ 
+ get_target_property(jank_lib_link_dirs_prop jank_common_lib LINK_DIRECTORIES)
+@@ -910,6 +908,8 @@
+   jank_exe_phase_1 PUBLIC
+-  ${jank_link_whole_start} ${CMAKE_BINARY_DIR}/libjank-dynamic-runtime-phase-1.a ${jank_link_whole_end}
++  # Keep force-load and its archive together when Phase 2 inherits this link list.
++  "$<LINK_LIBRARY:WHOLE_ARCHIVE,${CMAKE_BINARY_DIR}/libjank-dynamic-runtime-phase-1.a>"
+   LLVM clang-cpp
++  Folly::folly cpptrace::cpptrace
+   isocline
+   ZLIB::ZLIB
+ )
+@@ -957,7 +957,7 @@
+ 
+   target_link_libraries(
+     jank_exe_phase_2 PUBLIC
+-    "$<TARGET_PROPERTY:jank_exe_phase_1,LINK_LIBRARIES>"
++    "$<TARGET_GENEX_EVAL:jank_exe_phase_1,$<TARGET_PROPERTY:jank_exe_phase_1,LINK_LIBRARIES>>"
+     jank_lib_phase_2
+   )
+ 
+--- a/compiler+runtime/cmake/install.cmake
++++ b/compiler+runtime/cmake/install.cmake
+@@ -60,27 +60,10 @@
+   PATTERN "${CMAKE_SOURCE_DIR}/third-party/nanobench/include/*"
+ )
+ 
+-# TODO: Trim this WAY down to only what we use.
+-jank_glob_install_without_prefix(
+-  INPUT_PREFIX "${CMAKE_SOURCE_DIR}/third-party/folly/"
+-  OUTPUT_PREFIX "include/"
+-  PATTERN "${CMAKE_SOURCE_DIR}/third-party/folly/folly/*.h"
+-)
+-
+ jank_glob_install_without_prefix(
+   INPUT_PREFIX "${CMAKE_SOURCE_DIR}/third-party/immer/"
+   OUTPUT_PREFIX "include/"
+   PATTERN "${CMAKE_SOURCE_DIR}/third-party/immer/immer/*"
+-)
+-
+-jank_glob_install_without_prefix(
+-  INPUT_PREFIX "${CMAKE_SOURCE_DIR}/third-party/ftxui/"
+-  PATTERN "${CMAKE_SOURCE_DIR}/third-party/ftxui/include/*"
+-)
+-
+-jank_glob_install_without_prefix(
+-  INPUT_PREFIX "${CMAKE_SOURCE_DIR}/third-party/cpptrace/"
+-  PATTERN "${CMAKE_SOURCE_DIR}/third-party/cpptrace/include/*"
+ )
+ 
+ jank_glob_install_without_prefix(
+@@ -91,21 +74,6 @@
+   INPUT_PREFIX "${CMAKE_SOURCE_DIR}/third-party/cppinterop/lib/"
+   OUTPUT_PREFIX "include/"
+   PATTERN "${CMAKE_SOURCE_DIR}/third-party/cppinterop/lib/*.h"
+-)
+-
+-jank_glob_install_without_prefix(
+-  INPUT_PREFIX "${CMAKE_SOURCE_DIR}/third-party/boost-preprocessor/"
+-  PATTERN "${CMAKE_SOURCE_DIR}/third-party/boost-preprocessor/include/*"
+-)
+-
+-jank_glob_install_without_prefix(
+-  INPUT_PREFIX "${CMAKE_SOURCE_DIR}/third-party/boost-multiprecision/"
+-  PATTERN "${CMAKE_SOURCE_DIR}/third-party/boost-multiprecision/include/*"
+-)
+-
+-jank_glob_install_without_prefix(
+-  INPUT_PREFIX "${CMAKE_SOURCE_DIR}/third-party/boost-process/"
+-  PATTERN "${CMAKE_SOURCE_DIR}/third-party/boost-process/include/*"
+ )
+ 
+ # This is used for formatting C++ code at runtime.
+--- a/compiler+runtime/src/cpp/jank/runtime/context.cpp
++++ b/compiler+runtime/src/cpp/jank/runtime/context.cpp
+@@ -681,8 +681,8 @@
+     {
+       auto const thread_id{ std::this_thread::get_id() };
+       auto const tbfs_map(thread_binding_frames.rlock());
+-      auto const tbfs(thread_binding_frames->find(thread_id));
+-      if(tbfs != thread_binding_frames->end() && !tbfs->second.empty())
++      auto const tbfs(tbfs_map->find(thread_id));
++      if(tbfs != tbfs_map->end() && !tbfs->second.empty())
+       {
+         bindings = tbfs->second.front().bindings;
+       }
+--- a/compiler+runtime/src/cpp/jank/util/clang.cpp
++++ b/compiler+runtime/src/cpp/jank/util/clang.cpp
+@@ -98,7 +98,9 @@
+     std::filesystem::path const installed_path{ resource_dir / "bin/clang++" };
+     if(std::filesystem::exists(installed_path))
+     {
+-      return result = installed_path.string();
++      /* Driver include and resource paths are relative to the real compiler prefix. */
++      return result = (std::filesystem::canonical(installed_path).parent_path()
++                       / installed_path.filename()).string();
+     }
+ 
+     std::filesystem::path const cxx_path{ getenv("CXX") ?: "" };
