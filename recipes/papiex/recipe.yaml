@@ -1,0 +1,100 @@
+schema_version: 1
+
+context:
+  version: "2.3.16"
+
+recipe:
+  name: papiex
+  version: ${{ version }}
+
+source:
+  url: https://github.com/NOAA-GFDL/papiex/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 3c97aff082b50cf4b8839b1562c07ff565acd919af80bc246e8cd5408db1d0aa
+
+build:
+  number: 0
+  skip: not linux
+
+outputs:
+  - package:
+      name: libpapiex-monitor
+    build:
+      script: build-monitor.sh
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - make
+        - gnuconfig
+      run_exports:
+        - ${{ pin_subpackage('libpapiex-monitor', exact=True) }}
+    tests:
+      - package_contents:
+          lib:
+            - monitor
+          include:
+            - monitor.h
+          bin:
+            - monitor-run
+          files:
+            not_exists:
+              - lib/*.a
+    about:
+      homepage: https://github.com/NOAA-GFDL/papiex
+      summary: Fork-specific libmonitor runtime used by papiex
+      license: BSD-3-Clause
+      license_file:
+        - monitor/LICENSE
+        - monitor/src/queue.h
+      repository: https://github.com/NOAA-GFDL/papiex
+
+  - package:
+      name: papiex
+    build:
+      script: build-papiex.sh
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - make
+      host:
+        - ${{ pin_subpackage('libpapiex-monitor', exact=True) }}
+        - papi
+      run:
+        - ${{ pin_subpackage('libpapiex-monitor', exact=True) }}
+        - papi
+    tests:
+      - package_contents:
+          lib:
+            - papiex
+          include:
+            - papiex.h
+          files:
+            not_exists:
+              - lib/*.a
+      - requirements:
+          run:
+            - python >=3.11
+        script:
+          interpreter: python
+          file: run_test.py
+    about:
+      homepage: https://github.com/NOAA-GFDL/papiex
+      summary: Collect process and thread resource metrics using LD_PRELOAD and PAPI
+      license: LGPL-2.1-only
+      license_file: LICENSE
+      repository: https://github.com/NOAA-GFDL/papiex
+
+about:
+  homepage: https://github.com/NOAA-GFDL/papiex
+  summary: Process and thread profiling with papiex and its monitor runtime
+  license: LGPL-2.1-only AND BSD-3-Clause
+  license_file:
+    - LICENSE
+    - monitor/LICENSE
+    - monitor/src/queue.h
+  repository: https://github.com/NOAA-GFDL/papiex
+
+extra:
+  recipe-maintainers:
+    - ilaflott
