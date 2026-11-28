@@ -1,0 +1,45 @@
+name: Upload linux-64 package to Anaconda.org
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Run ID of the build workflow that produced the artifact (from the URL of the Actions run)'
+        required: true
+        type: string
+
+jobs:
+  upload:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Download artifact from build run
+        uses: actions/download-artifact@v4
+        with:
+          name: openfoam13-linux64-package
+          path: /tmp/conda-bld/linux-64/
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ secrets.PAT_TOKEN }}
+
+      - name: List downloaded files
+        run: ls -lh /tmp/conda-bld/linux-64/
+
+      - name: Setup conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          channels: conda-forge
+          channel-priority: strict
+
+      - name: Upload to Anaconda.org (bbdias)
+        shell: bash -l {0}
+        env:
+          ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+        run: |
+          PKG=$(ls /tmp/conda-bld/linux-64/openfoam13_for_pato-*.conda 2>/dev/null | head -1)
+          if [ -z "$PKG" ]; then
+            PKG=$(ls /tmp/conda-bld/linux-64/openfoam13_for_pato-*.tar.bz2 2>/dev/null | head -1)
+          fi
+          echo "Found package: $PKG"
+          conda install anaconda-client -c conda-forge -y
+          anaconda --token "$ANACONDA_TOKEN" upload --user bbdias --label main "$PKG"
