@@ -1,0 +1,80 @@
+schema_version: 1
+
+context:
+  name: ultrafast-pycocotools
+  version: "0.1.14"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/u/ultrafast-pycocotools/ultrafast_pycocotools-${{ version }}.tar.gz
+  sha256: 31de053ba606174ed20734857fe6422d1aa036357dbcdb3510e9fb855f437bf4
+
+build:
+  number: 0
+  script:
+    env:
+      # Build exactly the dependency versions in the sdist's Cargo.lock.
+      MATURIN_PEP517_ARGS: --locked
+      CARGO_PROFILE_RELEASE_STRIP: symbols
+    content:
+      # The release profile in Cargo.toml (thin LTO, one codegen unit) is left
+      # as is: results must stay bit-identical to pycocotools.
+      - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.7,<2.0
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - ${{ compiler("rust") }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - pip
+    - maturin >=1.7,<2.0
+  run:
+    - python
+    # NumPy's C API is resolved at import time (rust-numpy), so it is not
+    # needed in host.
+    - numpy >=1.21
+
+tests:
+  - python:
+      imports:
+        - ultrafast_pycocotools
+        - ultrafast_pycocotools.cocoeval
+        - ultrafast_pycocotools.mask
+      pip_check: true
+  - files:
+      recipe:
+        - test_parity.py
+    requirements:
+      run:
+        - pycocotools
+    script:
+      - python test_parity.py
+
+about:
+  summary: A bit-exact, fast, memory-stable drop-in replacement for pycocotools
+  description: |
+    ultrafast-pycocotools reimplements the COCO evaluation API of pycocotools
+    (COCO, COCOeval and mask) in Rust. Its precision, recall and score arrays
+    are bit-identical to pycocotools for bbox, segm and keypoints evaluation.
+  license: BSD-2-Clause
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  homepage: https://github.com/developer0hye/ultrafast-pycocotools
+  repository: https://github.com/developer0hye/ultrafast-pycocotools
+
+extra:
+  recipe-maintainers:
+    - developer0hye
