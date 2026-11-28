@@ -1,0 +1,29 @@
+Exercise the decoder with an encoded value in its documented format.
+The original test passes raw UINT32_MAX as an encoded value and shifts
+by more than the word width, invoking undefined behavior.
+
+Related upstream fix: https://github.com/ROCm/rocm-systems/pull/7733
+Original test: https://github.com/ROCm/rccl/pull/1821
+This is a local adaptation of the same correction: encode before decoding.
+Upstream uses bitsPerPow2 = 1; this patch uses the documented 3-bit
+mantissa format and checks the corresponding decoded value instead.
+
+--- a/test/BitOpsTests.cpp
++++ b/test/BitOpsTests.cpp
+@@ -67,11 +67,11 @@
+ }
+ 
+ TEST(u32fpDecode, u32fpDecodeSuccess) {
+-    // log2x is 1, use bitsPerPow2 = 1
+-    uint32_t u32Val{0xFFFFFFFF}; // 32 bits set to 1
+-    uint32_t u32ExpectVal = 63;
+-    int bitsPerPow2 = 1;
+-    EXPECT_EQ(u32fpDecode(u32Val, bitsPerPow2), u32ExpectVal);
++    // Decode an encoded value using the documented 3-bit mantissa format.
++    // Passing UINT32_MAX directly as encoded input yields an invalid shift.
++    const int bitsPerPow2 = 3;
++    const uint32_t encoded = u32fpEncode(0xFFFFFFFFu, bitsPerPow2);
++    EXPECT_EQ(u32fpDecode(encoded, bitsPerPow2), 0xF0000000u);
+ }
+ 
+ TEST(getHash, getHashSuccess) {
