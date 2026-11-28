@@ -1,0 +1,72 @@
+context:
+  version: "0.11.0"
+
+package:
+  name: msolve
+  version: ${{ version }}
+
+source:
+  url: https://msolve.lip6.fr/downloads/v${{ version }}/msolve-${{ version }}.tar.gz
+  sha256: 0f32011c4333efb662ce8f5febf6b5dc1a8e6f1e4a935361b9af5009bd5cdb98
+  patches:
+    - x86-baseline.patch
+
+build:
+  skip:
+    - win
+  script:
+    - autoreconf -fi
+    - ./configure --prefix=$PREFIX --disable-static
+    - make -j${CPU_COUNT}
+    - if: build_platform == target_platform
+      then: make -j${CPU_COUNT} check
+    - make install
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - autoconf
+    - automake
+    - libtool
+    - make
+  host:
+    - libflint
+    - gmp
+    - mpfr
+    - if: osx
+      then: llvm-openmp
+  run_exports:
+    - ${{ pin_subpackage('msolve', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      files:
+        - include/msolve/msolve/msolve.h
+      lib:
+        - msolve
+        - neogb
+  - script:
+      - printf 'x,y\n0\nx-y,\ny^2-2\n' > in.ms
+      - msolve -g 2 -f in.ms -o out.txt
+      - cat out.txt
+      - grep -F 'y^2-2' out.txt
+
+about:
+  homepage: https://msolve.lip6.fr/
+  summary: 'A library for solving multivariate polynomial systems'
+  description: |
+    MSOLVE is an open-source C library for solving multivariate polynomial
+    systems with rational or finite field coefficients. It provides algorithms
+    for computing Gröbner bases, isolating real roots, and determining
+    invariants such as the dimension and degree of the solution set, along with
+    related tools for polynomial system solving.
+  license: GPL-2.0-or-later
+  license_file: COPYING
+  documentation: https://msolve.lip6.fr/downloads/msolve-tutorial.pdf
+  repository: https://github.com/algebraic-solving/msolve
+
+extra:
+  recipe-maintainers:
+    - d-torrance
