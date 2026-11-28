@@ -1,0 +1,107 @@
+schema_version: 1
+
+context:
+  version: "7.2.4"
+
+recipe:
+  name: rocsparse-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ROCm/rocm-libraries/releases/download/rocm-${{ version }}/rocsparse.tar.gz
+  sha256: 5342f1e536d42c86461a3482cd1921ba3f854e15b5705d792494b36c4750e6e5
+
+build:
+  number: 0
+  skip:
+    - not linux
+    - hip_compiler_version in (None, "None")
+
+outputs:
+  - staging:
+      name: rocsparse-build
+    requirements:
+      build:
+        - ${{ compiler('clang') }}
+        - ${{ stdlib("c") }}
+        - ${{ compiler('clangxx') }}
+        - ${{ compiler('hip') }}
+        - cmake
+        - ninja
+      host:
+        - rocm-core ${{ version }}.*
+        - rocm-cmake
+        - librocprim-devel
+        - librocblas-devel
+    build:
+      script: build.sh
+
+  - package:
+      name: librocsparse
+    inherit: rocsparse-build
+    build:
+      files:
+        include:
+          - "**/*"
+        exclude:
+          - include/**
+          - lib/*.a
+          - lib/cmake/**
+          - lib/pkgconfig/**
+          - share/pkgconfig/**
+          - share/doc/**
+    tests:
+      - package_contents:
+          lib:
+            - librocsparse
+
+  - package:
+      name: librocsparse-devel
+    inherit: rocsparse-build
+    build:
+      files:
+        - include/**
+        - lib/*.a
+        - lib/cmake/**
+        - lib/pkgconfig/**
+        - share/pkgconfig/**
+        - share/doc/**
+    requirements:
+      run:
+        - hip-devel
+        - librocprim-devel
+        - librocblas-devel
+        - ${{ pin_subpackage('librocsparse', exact=True) }}
+
+      run_exports:
+        - ${{ pin_subpackage('librocsparse', upper_bound='x.x') }}
+
+    tests:
+      - requirements:
+          run:
+            - cmake-package-check
+            - ${{ compiler('clang') }}
+            - ${{ compiler('clangxx') }}
+        script:
+          - cmake-package-check rocsparse
+      - package_contents:
+          include:
+            - rocsparse/rocsparse.h
+
+about:
+  repository: https://github.com/ROCm/rocm-libraries
+  homepage: https://rocm.docs.amd.com/projects/rocSPARSE/en/latest/
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE.md
+  summary: "ROCm SPARSE linear algebra library"
+  description: |
+    rocSPARSE is a library that contains basic linear algebra subroutines for sparse
+    matrices and vectors written in HIP for GPU devices. It is designed to be used
+    from C and C++ code.
+
+extra:
+  feedstock-name: rocsparse
+  recipe-maintainers:
+    - flferretti
+    - conda-forge/rocm-core
