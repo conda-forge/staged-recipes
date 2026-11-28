@@ -1,0 +1,29 @@
+Guard the container-migration.plist install with BUILD_OWNCLOUD_OSX_BUNDLE.
+
+In a non-bundle build ONWCLOUD_OSX_BUNDLE is empty, so this install
+targets the absolute path /Contents/Resources and cmake --install fails.
+The alternative, setting BUILD_OWNCLOUD_OSX_BUNDLE=ON, would reroute the
+whole install into the bundle (nextcloudcmd and the sync dylibs go to
+Contents/MacOS instead of bin/ and lib/), destroying the layout we want.
+That flag is orthogonal to CMAKE_MACOSX_BUNDLE, which only affects build
+output (the .app wrapper): upstream assumes the two stay in sync, but this
+recipe builds a bundle while installing non-bundle-style. Guarding this
+one install is the minimal fix.
+
+--- a/admin/osx/CMakeLists.txt
++++ b/admin/osx/CMakeLists.txt
+@@ -48,8 +48,14 @@
+ 
+ # Sandbox migration description
+ configure_file(container-migration.plist.cmake ${CMAKE_CURRENT_BINARY_DIR}/container-migration.plist @ONLY)
++# This file only belongs to the .app bundle. In non-bundle builds
++# ONWCLOUD_OSX_BUNDLE is empty, which makes the destination an absolute
++# path (/Contents/Resources) and cmake --install fails. The guard below
++# is the same one used by all other bundle installs in this tree.
++if(BUILD_OWNCLOUD_OSX_BUNDLE)
+ install(FILES ${CMAKE_BINARY_DIR}/admin/osx/container-migration.plist
+         DESTINATION ${OWNCLOUD_OSX_BUNDLE}/Contents/Resources)
++endif()
+ 
+ configure_file(create_mac.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/create_mac.sh)
+ configure_file(macosx.entitlements.cmake ${CMAKE_CURRENT_BINARY_DIR}/macosx.entitlements)
