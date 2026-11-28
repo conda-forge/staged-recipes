@@ -1,0 +1,156 @@
+# conda-forge recipe for GOAL (rattler-build / recipe v1 format).
+#
+# Submit by copying this file to `recipes/goal-atomistic/recipe.yaml` in a fork
+# of https://github.com/conda-forge/staged-recipes (see PUBLISHING.md).
+# The source is the sdist published on PyPI, so release to PyPI first and put
+# its sha256 below (`pip download --no-deps --no-binary :all: goal-atomistic==X`
+# then `sha256sum`, or copy it from the PyPI "Download files" page).
+#
+# Three packages are built from one source:
+#   goal-atomistic       ML module (import goal.ml)
+#   goal-atomistic-md    + MD module: tblite, Quantum ESPRESSO, i-PI, …
+#   goal-atomistic-full  + the ML extras (Ray Tune, PEFT, …); no DeepSpeed: conda-forge has no Python 3.14 build
+#
+# Windows: only `goal-atomistic` is built (qe has no win-64 build, and -md/-full need it).
+#
+# Hardware: noarch packages. conda's solver picks the CUDA or CPU build of
+# `pytorch` automatically, depending on whether an NVIDIA driver is present.
+
+context:
+  name: goal-atomistic
+  version: "0.2.0"
+  python_min: "3.14"
+
+recipe:
+  name: goal-atomistic-split
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/g/goal-atomistic/goal_atomistic-${{ version }}.tar.gz
+  sha256: 312e35bfb13cc9c7fbfc3a1b851ac8a8e5f0d688946ed69b8f80c24c6550e624
+
+build:
+  number: 0
+  noarch: python
+
+outputs:
+  - package:
+      name: goal-atomistic
+    build:
+      noarch: python
+      script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      python:
+        entry_points:
+          - goal-train = goal.ml.cli.train:train_ml
+          - goal-train-ml = goal.ml.cli.train:train_ml
+          - goal-eval = goal.ml.cli.evaluate:evaluate
+          - goal-finetune = goal.ml.cli.finetune:finetune
+          - goal-finetune-upet = goal.ml.cli.finetune_upet:main
+          - goal-tune = goal.ml.cli.tune:tune
+          - goal-simulate = goal.md.cli.simulate:simulate
+          - goal-simulate-mts = goal.md.cli.simulate:simulate_mts
+          - goal-inspect = goal.ml.cli.inspect_ckpt:main
+          - goal-pack-archive = goal.ml.cli.pack:main
+    requirements:
+      host:
+        - python ${{ python_min }}.*
+        - pip
+        - setuptools >=77
+      run:
+        - python >=${{ python_min }}
+        - pytorch >=2.4
+        - pytorch_geometric >=2.7.0
+        - e3nn >=0.5
+        - lightning >=2.6
+        - hydra-core >=1.3.2
+        - hydra-colorlog
+        - omegaconf >=2.3
+        - ase >=3.23
+        - rdkit >=2026.03.3,<2027
+        - python-lmdb
+        - huggingface_hub >=0.30
+        - wandb
+        - rich >=13
+    tests:
+      - python:
+          imports:
+            - goal
+            - goal.ml
+            - goal.ml.cli
+            - goal.ml.data.benchmarks
+          pip_check: true
+          python_version: ${{ python_min }}.*
+      - requirements:
+          run:
+            - python ${{ python_min }}.*
+        script:
+          - goal-train --cfg job -p model.backbone.name
+          - goal-train --config-name simurgh_dev_rmd17_aspirin --cfg job -p data.dataset_type
+
+  - package:
+      name: goal-atomistic-md
+    build:
+      noarch: generic
+      skip:
+        - win  # qe (Quantum ESPRESSO) has no win-64 build on conda-forge
+    requirements:
+      run:
+        - ${{ pin_subpackage("goal-atomistic", exact=True) }}
+        - tblite-python >=0.4
+        - qe >=7.4
+        # conda-forge's qe 7.6 links libelpa.so.19 without declaring ELPA.
+        - elpa 2025.06.* mpi_openmpi*
+        - dftd3-python >=1.4
+        - i-pi >=3.0
+        - typer >=0.16
+        - pandas >=2.3,<3
+    tests:
+      - requirements:
+          run:
+            - python ${{ python_min }}.*
+        script:
+          - python -c "import goal.md, tblite.ase; from goal.md.core.calculator_factory import CalculatorFactory; print(sorted(CalculatorFactory._builders))"
+          - pw.x -h < /dev/null > /dev/null 2>&1 || test $? -le 1
+
+  - package:
+      name: goal-atomistic-full
+    build:
+      noarch: generic
+      skip:
+        - win  # qe (Quantum ESPRESSO) has no win-64 build on conda-forge
+    requirements:
+      run:
+        - ${{ pin_subpackage("goal-atomistic-md", exact=True) }}
+        - peft >=0.13
+        - ray-tune >=2.55.1
+        - optuna >=3.0
+        - matscipy
+        - torchmetrics >=1.9.0
+        - h5py >=3.10
+        - requests >=2.31
+    tests:
+      - requirements:
+          run:
+            - python ${{ python_min }}.*
+        script:
+          - python -c "import goal.ml, goal.md, peft, optuna, torchmetrics, matscipy, h5py"
+
+about:
+  homepage: https://github.com/Nourollah/GOAL
+  repository: https://github.com/Nourollah/GOAL
+  documentation: https://nourollah.github.io/GOAL/
+  summary: "General Open Atomistic Laboratory: train machine-learning interatomic potentials and run molecular dynamics with them"
+  description: |
+    GOAL is organised as modules under the `goal` namespace. `goal.ml` trains
+    and fine-tunes machine-learning interatomic potentials (the native
+    E(3)-equivariant SIMURGH force field, HyperSpec, MACE/UMA/UPET
+    fine-tuning) with PyTorch Lightning and Hydra. `goal.md` runs molecular
+    dynamics with trained GOAL models, foundation models, tblite (GFN-xTB) or
+    QM codes (Quantum ESPRESSO, CP2K, VASP, ORCA), including multiple-time-step
+    MD with on-the-fly learning.
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - Nourollah
