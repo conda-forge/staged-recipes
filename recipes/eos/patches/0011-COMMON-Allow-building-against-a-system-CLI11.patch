@@ -1,0 +1,61 @@
+From 03bd87db9cf261e34614309786de3055689a5912 Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Fri, 18 Sep 2026 07:14:46 +0200
+Subject: [PATCH 11/12] COMMON: Allow building against a system CLI11
+
+The console sources include <CLI/CLI.hpp> and link CLI11::CLI11, which is
+exactly what an installed CLI11 provides through CLI11Config.cmake, so
+find_package is a drop-in for the add_subdirectory of the submodule.
+
+find_package has to run from cmake/EosFindLibs.cmake rather than
+common/CMakeLists.txt: it creates a directory-scoped IMPORTED target,
+whereas add_subdirectory(parser) created a real one visible everywhere, so
+finding it in common/ leaves console/ unable to link CLI11::CLI11.
+
+USE_SYSTEM_CLI11 selects it, mirroring the existing USE_SYSTEM_GTEST
+option. The default is unchanged. A side effect worth noting: the vendored
+path sets CLI11_INSTALL ON, so it installs CLI11's headers into the
+prefix; the system path does not.
+---
+ cmake/EosFindLibs.cmake | 5 +++++
+ common/CMakeLists.txt   | 4 +++-
+ 2 files changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/cmake/EosFindLibs.cmake b/cmake/EosFindLibs.cmake
+index 7cb5f9c70..a8ef8b8c4 100644
+--- a/cmake/EosFindLibs.cmake
++++ b/cmake/EosFindLibs.cmake
+@@ -26,6 +26,7 @@
+ #-------------------------------------------------------------------------------
+ option(PACKAGEONLY "Build without dependencies" OFF)
+ option(CLIENT "Build only client packages" OFF)
++option(USE_SYSTEM_CLI11 "Use CLI11 installed in the system if found" OFF)
+ option(BUILD_XRDCL_RAIN_PLUGIN "Enable XrdCl RAIN plugin" OFF)
+ option(BUILD_CSS_PLUGIN "Enable CSS plugin" ON)
+ 
+@@ -69,6 +70,10 @@ if(NOT PACKAGEONLY)
+   find_package(GRPC REQUIRED)
+   find_package(Protobuf3 REQUIRED)
+ 
++  if(USE_SYSTEM_CLI11)
++    find_package(CLI11 REQUIRED)
++  endif()
++
+   if (GRPC_FOUND AND XROOTD_FOUND)
+     # Library paths for Protobuf, grpc and xrootd need to be added to the
+     # RPATH of the libraries and binaries built since they are not installed
+diff --git a/common/CMakeLists.txt b/common/CMakeLists.txt
+index 831bcafad..24c2aaf12 100644
+--- a/common/CMakeLists.txt
++++ b/common/CMakeLists.txt
+@@ -38,7 +38,9 @@ include_directories(
+ #-------------------------------------------------------------------------------
+ # CLI11 parser submodule (console/parser)
+ #-------------------------------------------------------------------------------
+-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/parser/CMakeLists.txt")
++# USE_SYSTEM_CLI11 is handled in cmake/EosFindLibs.cmake: find_package must
++# run at top level so the imported target is visible to console/ as well.
++if(NOT USE_SYSTEM_CLI11 AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/parser/CMakeLists.txt")
+   set(CLI11_BUILD_TESTS OFF CACHE BOOL "Disable CLI11 tests" FORCE)
+   set(CLI11_BUILD_EXAMPLES OFF CACHE BOOL "Disable CLI11 examples" FORCE)
+   set(CLI11_BUILD_DOCS OFF CACHE BOOL "Disable CLI11 docs" FORCE)
