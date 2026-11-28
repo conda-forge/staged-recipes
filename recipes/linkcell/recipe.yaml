@@ -1,0 +1,119 @@
+schema_version: 1
+
+context:
+  version: "0.6.0"
+
+package:
+  name: linkcell
+  version: ${{ version }}
+
+source:
+  url: https://github.com/d-SEAMS/linkcell/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 3ebf23232d547f0c46f4ee136ded90ce8c2185100f0aaa79bd8ae8a17c9c1525
+
+build:
+  number: 0
+  # Python only runs the meson cargo helper. It is not part of the library.
+  variant:
+    ignore_keys:
+      - python
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - meson
+    - ninja
+    - pkgconf
+    - python
+    - cargo-bundle-licenses
+    - if: win
+      then:
+        - m2-bash
+  host:
+    # The fused OpenMP region links libgomp under GCC on Linux and
+    # libomp on macOS. Windows keeps the rayon walk and links neither.
+    - if: linux
+      then:
+        - libgomp
+    - if: osx
+      then:
+        - llvm-openmp
+  run_exports:
+    - ${{ pin_subpackage('linkcell', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - linkcell
+      include:
+        - linkcell.h
+        - linkcell.hpp
+        - linkcell_gpu.h
+        - linkcell_gpu.hpp
+      files:
+        exists:
+          - if: unix
+            then: lib/pkgconfig/linkcell.pc
+          - if: win
+            then: Library/lib/pkgconfig/linkcell.pc
+  - files:
+      recipe:
+        - test_knearest.c
+        - test_knearest_csr.cpp
+    requirements:
+      run:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - pkgconf
+    script:
+      - if: unix
+        then:
+          - test "$(pkg-config --modversion linkcell)" = "${{ version }}"
+          - ${CC} ${CFLAGS} -std=c11 test_knearest.c $(pkg-config --cflags --libs linkcell) -lm ${LDFLAGS} -Wl,-rpath,${PREFIX}/lib -o test_knearest
+          - ${CXX} ${CXXFLAGS} -std=c++17 test_knearest_csr.cpp $(pkg-config --cflags --libs linkcell) ${LDFLAGS} -Wl,-rpath,${PREFIX}/lib -o test_knearest_csr
+          - OMP_NUM_THREADS=1 ./test_knearest
+          - OMP_NUM_THREADS=4 ./test_knearest
+          - OMP_NUM_THREADS=4 ./test_knearest_csr
+          # A static consumer needs the OpenMP runtime the region calls,
+          # and every library directory it is given is in the prefix.
+          - pkg-config --static --libs linkcell
+          - for flag in $(pkg-config --static --libs linkcell); do case "${flag}" in -L"${PREFIX}"/*) ;; -L*) echo "linkcell.pc names ${flag}"; exit 1 ;; esac; done
+          - ${CC} ${CFLAGS} -std=c11 test_knearest.c $(pkg-config --cflags --static --libs linkcell) ${LDFLAGS} -Wl,-rpath,${PREFIX}/lib -o test_knearest_private
+          - OMP_NUM_THREADS=2 ./test_knearest_private
+      - if: linux
+        then:
+          - pkg-config --static --libs linkcell | grep -q -- -lgomp
+          - ${READELF} -d ${PREFIX}/lib/liblinkcell.so | grep NEEDED | grep -q libgomp
+      - if: osx
+        then:
+          - pkg-config --static --libs linkcell | grep -q omp
+          - ${OTOOL:-otool} -L ${PREFIX}/lib/liblinkcell.dylib | grep -q libomp
+      - if: win
+        then:
+          - pkg-config --modversion linkcell
+          - cl -nologo /std:c11 /I%LIBRARY_INC% test_knearest.c /Fe:test_knearest.exe /link /LIBPATH:%LIBRARY_LIB% linkcell.lib
+          - cl -nologo /std:c++17 /EHsc /I%LIBRARY_INC% test_knearest_csr.cpp /Fe:test_knearest_csr.exe /link /LIBPATH:%LIBRARY_LIB% linkcell.lib
+          - test_knearest.exe
+          - test_knearest_csr.exe
+
+about:
+  homepage: https://github.com/d-SEAMS/linkcell
+  repository: https://github.com/d-SEAMS/linkcell
+  documentation: https://linkcell.dseams.info/
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  summary: Periodic linked-cell k-nearest neighbour search
+  description: |
+    linkcell is the periodic linked-cell k-nearest neighbour search
+    used by the d-SEAMS engine. This package ships the shared library,
+    the C and C++ headers, and the pkg-config file.
+
+extra:
+  recipe-maintainers:
+    - HaoZeke

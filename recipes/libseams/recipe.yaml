@@ -1,0 +1,123 @@
+schema_version: 1
+
+context:
+  version: "2.14.0"
+
+package:
+  name: libseams
+  version: ${{ version }}
+
+source:
+  # GitHub's generated archive for the v2.14.0 release tag.
+  url: https://github.com/d-SEAMS/seams-core/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: fa3e6d8f75e5a06691bd806334f1a89e0998f729d8145a057dc68794a162a551
+
+build:
+  number: 0
+  # Python is a build helper. It is not part of the library.
+  variant:
+    ignore_keys:
+      - python
+  # The Windows port of the engine is not done. packaging/yggdrasil
+  # excludes Windows for that reason, and this recipe follows it.
+  skip:
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - meson >=1.3
+    - ninja
+    - pkgconf
+    - python
+  host:
+    - eigen >=3.4.0,<5
+    - linkcell >=0.5.0
+    - libhwy >=1.3.0
+    - if: linux
+      then:
+        - libgomp
+    - if: osx
+      then:
+        - llvm-openmp
+  run:
+    # seams-core.pc requires eigen3. The headers are not linked into
+    # the shared libraries, so eigen's own run exports do not fire.
+    - eigen >=3.4.0,<5
+    - if: linux
+      then:
+        - libgomp
+    - if: osx
+      then:
+        - llvm-openmp
+  run_exports:
+    - ${{ pin_subpackage('libseams', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - seams
+        - seams_lang
+        - yodaLib
+      include:
+        - seams.h
+        - seams.hpp
+        - seams_version.h
+        - seams/seams_lang.h
+      bin:
+        - seams
+        - brine_front
+        - science-front
+        - nucleation-pathway
+      files:
+        exists:
+          - lib/pkgconfig/seams.pc
+          - lib/pkgconfig/seams-core.pc
+          - lib/pkgconfig/seams-lang.pc
+          - lib/cmake/seams/seams-config.cmake
+          - lib/cmake/seams/seams-config-version.cmake
+  - files:
+      source:
+        - docs/examples/quickstart.c
+        - input/traj/ice1h.lammpstrj
+    requirements:
+      run:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - pkgconf
+    script:
+      - seams --version
+      - seams --help
+      - test "$(pkg-config --modversion seams)" = "${{ version }}"
+      - pkg-config --exists --print-errors seams-core
+      - pkg-config --exists --print-errors seams-lang
+      - ${CC} ${CFLAGS} -std=c11 docs/examples/quickstart.c $(pkg-config --cflags --libs seams) -lm ${LDFLAGS} -Wl,-rpath,${PREFIX}/lib -o quickstart
+      - ./quickstart
+      - test "$(seams chill-plus input/traj/ice1h.lammpstrj)" = "nop 128 hexagonal 128"
+      - test "$(seams cages input/traj/ice1h.lammpstrj)" = "nop 128 graph seeded hexagonal 128 cubic 0 both 0 water 0"
+      - test "$(seams cluster input/traj/ice1h.lammpstrj)" = "nop 128 largest 127 subset 128 percolation 0.992188"
+      - test "$(nucleation-pathway input/traj/ice1h.lammpstrj --out nucleation.tsv --summary nucleation.summary 2>&1)" = "frame 1 nop 128 chill 128 ovito 128 q6 128 sym 128 n6 256"
+      - test "$(awk '$1 == "molecules" {print $2}' nucleation.summary)" = "128"
+      - test "$(science-front nucleation input/traj/ice1h.lammpstrj --out-dir front 2>&1)" = "nucleus frame 1 ext 128 core 128 q6 128 shell 128"
+      - test -s front/nucleation-summary.csv
+
+about:
+  homepage: https://dseams.info
+  repository: https://github.com/d-SEAMS/seams-core
+  documentation: https://docs.dseams.info
+  license: MIT
+  license_file: LICENSE
+  summary: Structural analysis engine for molecular simulations of water and ice
+  description: |
+    d-SEAMS (Deferred Structural Elucidation Analysis for Molecular
+    Simulations) classifies ice, clathrates and interfaces in molecular
+    dynamics trajectories. This package is the C++ engine (libyodaLib),
+    the stable C API (libseams, seams.h), the C ABI the language bindings
+    link (libseams_lang), and the seams command. The Python binding is
+    the separate pydseamslib package.
+
+extra:
+  recipe-maintainers:
+    - HaoZeke
