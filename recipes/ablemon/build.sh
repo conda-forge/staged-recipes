@@ -1,0 +1,10 @@
+#!/bin/bash
+# a shared library on Linux and macOS
+set -ex
+cmake -S . -B build -G Ninja ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_SHARED_LIBS=ON -DLEMON_VERSION=${PKG_VERSION} \
+  -DLEMON_BUILD_TESTS=NO -DLEMON_BUILD_DEMOS=NO -DLEMON_BUILD_TOOLS=NO \
+  -DLEMON_BUILD_DOC=NO -DLEMON_ENABLE_GLPK=NO -DLEMON_ENABLE_ILOG=NO \
+  -DLEMON_ENABLE_COIN=NO -DLEMON_ENABLE_SOPLEX=NO
+cmake --build build
+cmake --install build
