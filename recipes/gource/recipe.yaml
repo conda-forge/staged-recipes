@@ -1,0 +1,81 @@
+context:
+  version: "0.56"
+
+package:
+  name: gource
+  version: ${{ version }}
+
+source:
+  url: https://github.com/acaudwell/Gource/releases/download/gource-${{ version }}/gource-${{ version }}.tar.gz
+  sha256: 332d89b9a979b17417fbce0edd72b19914f1409fd126a13d11787d0e15dc0d79
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - if: unix
+      then:
+        - make
+        - pkg-config
+      else:
+        - cmake
+        - ninja
+  host:
+    - sdl2
+    - sdl2_image
+    - freetype
+    - pcre2
+    - glew
+    - libpng
+    # libpng.pc lists zlib in Requires.private
+    - zlib
+    - libboost-devel
+    - glm
+    - if: linux
+      then:
+        - libgl-devel
+        # glu.pc requires opengl.pc
+        - libopengl-devel
+        - libglu
+  ignore_run_exports:
+    from_package:
+      # header-only
+      - glm
+      # only needed to resolve libpng's build files; gource never links it
+      - zlib
+
+tests:
+  - script:
+      - if: unix
+        then:
+          - gource --help
+          - test -f "${PREFIX}/share/gource/shaders/bloom.frag"
+        else:
+          # without a parent console, gource waits for Enter after printing
+          - echo. | gource --help
+          - if not exist "%LIBRARY_BIN%\data\shaders\bloom.frag" exit 1
+
+about:
+  homepage: https://gource.io
+  repository: https://github.com/acaudwell/Gource
+  summary: Software version control visualization
+  description: |
+    Gource renders the history of a version control repository as an animated
+    tree, with the root directory at the centre and contributors working on it.
+    Supports Git, Mercurial, Bazaar and SVN, plus a custom log format.
+  # vendored: tinyxml (Zlib), utf8-cpp (BSL-1.0), FTUnicode.h from FTGL (MIT)
+  license: GPL-3.0-or-later AND Zlib AND BSL-1.0 AND MIT
+  license_file:
+    - COPYING
+    # FreeFont's font exception to the GPL is stated only here
+    - data/fonts/README
+    - src/tinyxml/tinyxml.cpp
+    - src/core/utf8/core.h
+    - src/core/ftgl/FTUnicode.h
+
+extra:
+  recipe-maintainers:
+    - ManuelLerchner
