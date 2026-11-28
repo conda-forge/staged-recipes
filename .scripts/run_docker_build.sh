@@ -59,10 +59,10 @@ docker run ${DOCKER_RUN_ARGS} \
            -v "${REPO_ROOT}:/home/conda/staged-recipes" \
            -e HOST_USER_ID=${HOST_USER_ID} \
            -e AZURE=${AZURE} \
-           -e CONFIG \
-           -e CI \
-           -e CPU_COUNT \
-           -e DEFAULT_LINUX_VERSION \
+           -e CONFIG=${CONFIG} \
+           -e CI=${CI} \
+           -e CPU_COUNT=${CPU_COUNT} \
+           -e DEFAULT_LINUX_VERSION=${DEFAULT_LINUX_VERSION} \
            "${DOCKER_IMAGE}" \
            bash \
            "/home/conda/staged-recipes/${PROVIDER_DIR}/build_steps.sh"
