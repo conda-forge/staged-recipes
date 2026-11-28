@@ -1,0 +1,85 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/prefix-dev/recipe-format/main/schema.json
+schema_version: 1
+
+context:
+  name: layeredcfg
+  version: "0.1.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://files.pythonhosted.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: 18374e63f37f6b6beadb945440b31f513305a89f47fd4c3393910edc923e56b3
+
+build:
+  number: 0
+  # One abi3 build, for the oldest Python, serves them all; not on Windows (nix).
+  skip: win or not (match(python, python_min ~ ".*") and is_abi3)
+  python:
+    version_independent: true
+  script:
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - if: target_platform == "osx-arm64"
+      then:
+        - export MATURIN_PEP517_ARGS="--target aarch64-apple-darwin"
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.9,<2
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - python-abi3
+    - pip
+    - maturin >=1.9,<2
+  run:
+    - python
+
+tests:
+  # On the oldest Python and the latest: one abi3 build installs on all of them.
+  - python:
+      imports:
+        - layeredcfg
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  # That the extension uses no CPython API beyond the stable ABI of python_min, which would
+  # only fail at run time on a later Python.
+  - requirements:
+      run:
+        - abi3audit
+    script:
+      - abi3audit $SP_DIR/layeredcfg/_core.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+  - files:
+      source:
+        - tests/python/
+    requirements:
+      run:
+        - pip
+        - pytest
+    script:
+      - pip check
+      - pytest -v tests/python
+
+about:
+  homepage: https://github.com/lutianyu2001/layeredcfg
+  repository: https://github.com/lutianyu2001/layeredcfg
+  summary: Layered configuration from a TOML file, env-style files, the environment and the command line
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - lutianyu2001
