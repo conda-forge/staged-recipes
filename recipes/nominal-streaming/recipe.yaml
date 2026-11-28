@@ -1,0 +1,76 @@
+schema_version: 1
+
+context:
+  version: "0.5.8"
+  python_min: "3.10"
+
+package:
+  name: nominal-streaming
+  version: ${{ version }}
+
+source:
+  url: https://github.com/nominal-io/nominal-streaming/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 18d7d2d134846bd5d02394f0e8dd1f4f8a772f302323d26635fd97650c37fa08
+
+build:
+  number: 0
+  script:
+    - cd py-nominal-streaming
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  python:
+    version_independent: true
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - cross-python_${{ target_platform }}
+        - python
+        - maturin >=1.6,<2
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - make
+    - if: win
+      then: nasm
+    - perl
+  host:
+    - python ${{ python_min }}.*
+    - python-abi3
+    - maturin >=1.6,<2
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - python-dateutil
+    - typing_extensions >=4,<5
+
+tests:
+  - python:
+      imports:
+        - nominal_streaming
+        - nominal_streaming._nominal_streaming
+      pip_check: true
+      python_version: ${{ python_min }}.*
+  - requirements:
+      run:
+        - abi3audit
+    script:
+      - if: unix
+        then: abi3audit $SP_DIR/nominal_streaming/_nominal_streaming.abi3.so -s -v --assume-minimum-abi3 ${{ python_min }}
+      - if: win
+        then: abi3audit %SP_DIR%\nominal_streaming\_nominal_streaming.pyd -s -v --assume-minimum-abi3 ${{ python_min }}
+
+about:
+  summary: Python bindings for the Nominal Rust streaming client
+  license: MIT
+  license_file:
+    - LICENSE
+    - py-nominal-streaming/THIRDPARTY.yml
+  homepage: https://github.com/nominal-io/nominal-streaming
+  repository: https://github.com/nominal-io/nominal-streaming
+
+extra:
+  recipe-maintainers:
+    - wolfv
