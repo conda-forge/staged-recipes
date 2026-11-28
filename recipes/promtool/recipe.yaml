@@ -1,0 +1,51 @@
+context:
+  version: "3.14.0"
+
+package:
+  name: promtool
+  version: ${{ version }}
+
+source:
+  url: https://github.com/prometheus/prometheus/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 9294e72722fe8f90e54994ce36f331ea6176cb0edc4149cbf1d023bc89536505
+
+build:
+  number: 0
+  script:
+    # go-licenses cannot classify github.com/jmespath/go-jmespath; its
+    # Apache-2.0 LICENSE is bundled next to this recipe as go-jmespath-LICENSE
+    - go-licenses save ./cmd/promtool --save_path ./library_licenses --ignore github.com/jmespath/go-jmespath
+    - if: unix
+      then:
+        - go build -v -o "${PREFIX}/bin/promtool" -ldflags="-s -w -X github.com/prometheus/common/version.Version=${{ version }}" ./cmd/promtool
+      else:
+        - go build -v -o "%LIBRARY_BIN%\promtool.exe" -ldflags="-s -X github.com/prometheus/common/version.Version=${{ version }}" ./cmd/promtool
+
+requirements:
+  build:
+    - ${{ compiler("go-nocgo") }}
+    - go-licenses
+
+tests:
+  - script:
+      - promtool --version
+
+about:
+  homepage: https://prometheus.io/
+  repository: https://github.com/prometheus/prometheus
+  documentation: https://prometheus.io/docs/prometheus/latest/command-line/promtool/
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - go-jmespath-LICENSE
+    - library_licenses/
+  summary: Prometheus CLI tool for config/rule validation and TSDB management
+  description: |
+    promtool is the official command-line utility shipped with Prometheus.
+    It validates Prometheus configuration and alerting/recording rules,
+    inspects and manages TSDB data, backfills time series from OpenMetrics
+    files, and queries or pushes metrics for debugging.
+
+extra:
+  recipe-maintainers:
+    - trim21
