@@ -1,0 +1,200 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# libcupo is NVIDIA's binary build of the cupo runtime, repackaged: the cupo
+# tarball of a GitHub release of NVIDIA/cuPotential, built with CUDA 13.4.
+# The recipe follows conda-forge's libcuest-feedstock.
+
+schema_version: 1
+
+context:
+  version: "0.3.5"
+  # The ABI version, the one in the library's SONAME: major.minor before 1.0,
+  # then the major version.
+  abi: ${{ (version | split(".") | list)[:2] | join(".") if (version | split(".") | list)[0] == "0" else (version | split(".") | list)[0] }}
+
+recipe:
+  name: libcupo-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/NVIDIA/cuPotential/releases/download/v0.3.5/cupo-0.3.5+cuda_13.4.sm_75_80_86_89_90_100_103_120.ge7cfd685.tar.gz
+  sha256: b4606c30c0714b965353d601a8643b18591cf4508cea5ce53321520dfdb153e9
+
+build:
+  number: 0
+  # One tarball per release, built for x86_64 with CUDA 13.4. The package is the
+  # same binary in every CUDA 13 variant.
+  skip:
+    - not (linux and x86_64)
+    # Every CUDA 13 variant of conda-forge's pinning, as the NVIDIA feedstocks
+    # choose by major version (libcuest, libcudss, cudnn; tensorrt in v1). The
+    # variants without CUDA have no version for match(), so they are skipped first.
+    - cuda_compiler_version is undefined or cuda_compiler_version == "None" or not match(cuda_compiler_version, ">=13,<14")
+
+outputs:
+  # build.sh installs the whole tarball once; each package below takes its files.
+  - staging:
+      name: libcupo-install
+    requirements:
+      build:
+        # check-glibc
+        - cf-nvidia-tools 1.*
+        # readelf, which check-glibc runs.
+        - binutils
+    build:
+      script:
+        file: build.sh
+        # A staging step's script has no variant variables of its own, and
+        # check-glibc reads c_stdlib_version. The variants without it, such as
+        # Windows, are skipped, but rendering the recipe still evaluates this.
+        env:
+          c_stdlib_version: ${{ c_stdlib_version if c_stdlib_version is defined else "" }}
+
+  - package:
+      name: libcupo
+    inherit: libcupo-install
+    build:
+      files:
+        - lib/libcupo.so.*
+      dynamic_linking:
+        # libcupo.so is NVIDIA's binary, packaged as it is, byte for byte: the
+        # library that share/cupo/runtime_build.json describes by its sha256. Its
+        # RUNPATH starts with $ORIGIN, which finds the CUDA libraries in lib/. The
+        # CUDA Toolkit's libraries, cuDNN and TensorRT turn relocation off the same
+        # way (cudnn-feedstock cites https://github.com/NixOS/patchelf/issues/492).
+        binary_relocation: false
+        missing_dso_allowlist:
+          - "**/libcuda.so*"          # the driver, which no conda package provides
+        overlinking_behavior: error
+        overdepending_behavior: error
+    requirements:
+      build:
+        - ${{ compiler("c") }}
+        - ${{ compiler("cxx") }}
+        - ${{ stdlib("c") }}
+        - ${{ compiler("cuda") }}
+      host:
+        - cuda-version ${{ cuda_compiler_version }}.*
+        - cuda-cudart-dev
+        - cuda-nvrtc-dev
+        - libcufft-dev
+        - libnvjitlink-dev
+      run:
+        # The CUDA libraries libcupo.so links: cudart, NVRTC (for expressions),
+        # nvJitLink and cuFFT. cuFFT also loads NVRTC and nvJitLink, to link the
+        # LTO callbacks libcupo registers.
+        - cuda-cudart
+        # NVRTC of the CUDA libcupo is built with, 13.4: libcupo compiles
+        # expressions with NVRTC to PTX and loads them through the driver, and a
+        # driver takes PTX of its own CUDA or an older one only. The drivers
+        # libcupo supports are those of 13.4 or newer, or 13.4's cuda-compat on a
+        # server GPU, and NVRTC 13.4 works with all of them.
+        - cuda-nvrtc 13.4.*
+        - libcufft
+        - libnvjitlink
+        # CUDA 13.4, the tarball's, or a newer CUDA 13: libcupo.so carries
+        # LTO-IR and PTX of CUDA 13.4, which an older nvJitLink or NVRTC cannot
+        # read, and registers cuFFT LTO callbacks, which need the cuFFT of 13.4 or
+        # newer. A new major version of CUDA breaks the ABI. Written out, not
+        # pin_compatible: the lower bound is the tarball's CUDA, whatever CUDA the
+        # variant builds with. cuda-version chooses the CUDA libraries above.
+        - cuda-version >=13.4,<14
+      # The CUDA libraries' run_exports ask for the variant's CUDA or newer;
+      # libcupo runs with CUDA 13.4 or newer (see run: above).
+      ignore_run_exports:
+        by_name:
+          - cuda-version
+        from_package:
+          - cuda-cudart-dev
+          - cuda-nvrtc-dev
+          - libcufft-dev
+          - libnvjitlink-dev
+    tests:
+      - package_contents:
+          files:
+            exists:
+              - lib/libcupo.so.${{ version }}
+              - lib/libcupo.so.${{ abi }}
+            not_exists:
+              - lib/libcupo.so
+              - include/cupo/
+      - script:
+          # The ABI link, which is the library's SONAME.
+          - test -L $PREFIX/lib/libcupo.so.${{ abi }}
+
+  - package:
+      name: libcupo-dev
+    inherit: libcupo-install
+    build:
+      files:
+        - lib/libcupo.so
+        - include/cupo/
+        - lib/cmake/CupoRuntime/
+        - share/cmake/CupoConvolution/
+        - lib/cupo/
+        - share/cupo/
+    requirements:
+      host:
+        - cuda-version ${{ cuda_compiler_version }}.*
+        - ${{ pin_subpackage("libcupo", exact=True) }}
+      run:
+        # As libcupo's.
+        - cuda-version >=13.4,<14
+        - ${{ pin_subpackage("libcupo", exact=True) }}
+        # The CMake package's Cupo::Runtime names these (CUDA::cudart,
+        # CUDA::cuda_driver, CUDA::nvJitLink, CUDA::cufft, CUDA::curand), and
+        # CMake needs each to exist. libcupo.so itself does not link cuRAND.
+        - cuda-cudart-dev
+        - cuda-driver-dev
+        - libcufft-dev
+        - libcurand-dev
+        - libnvjitlink-dev
+      # A package that builds against libcupo-dev runs with libcupo. Before 1.0,
+      # a new minor version of libcupo may break its interface.
+      run_exports:
+        - ${{ pin_subpackage("libcupo", upper_bound="x.x") }}
+      ignore_run_exports:
+        by_name:
+          - cuda-version
+    tests:
+      - package_contents:
+          files:
+            exists:
+              - lib/libcupo.so
+              - include/cupo/version.h
+              - include/cupo/package_version.h
+              - lib/cmake/CupoRuntime/CupoRuntimeConfig.cmake
+              - lib/cupo/ltoir/standard/cupo_math.cu.o
+              - lib/cupo/ltoir/fast_math/cupo_math.cu.o
+              - share/cupo/runtime_build.json
+      - script:
+          - test -L $PREFIX/lib/libcupo.so
+          # The CMake package names the library where this package has it.
+          - grep -q '/lib/libcupo.so' $PREFIX/lib/cmake/CupoRuntime/CupoRuntimeTargets-*.cmake
+          - test -z "$(grep -rl /build/ $PREFIX/lib/cmake/CupoRuntime $PREFIX/share/cmake/CupoConvolution)"
+
+about:
+  homepage: https://github.com/NVIDIA/cuPotential
+  repository: https://github.com/NVIDIA/cuPotential
+  documentation: https://docs.nvidia.com/cuda/cupotential
+  # LicenseRef-cuPotential-Software-License-Agreement is LICENSE-cupo.txt, the
+  # NVIDIA Software License Agreement for cuPotential Runtime: a licence of its
+  # own, named for it as cuTENSOR's and cuDNN's are. MIT is the OpenMM code in it.
+  license: LicenseRef-cuPotential-Software-License-Agreement AND MIT
+  license_file:
+    - build/third_party/LICENSE-cupo.txt
+    - build/third_party/LICENSE-apache.txt
+    - build/third_party/THIRD-PARTY.txt
+  summary: cuPotential runtime - GPU-accelerated nonbonded and bonded potentials for molecular dynamics
+  description: |
+    The cupo runtime of cuPotential: CUDA kernels for the nonbonded (direct and
+    reciprocal space, with custom pair expressions) and bonded potentials of
+    molecular dynamics, behind a C API. NVIDIA's binary build. libcupo has the
+    shared library, libcupo-dev the headers and CMake packages.
+
+extra:
+  feedstock-name: libcupo
+  recipe-maintainers:
+    - antonvnv
+    - abde-ali-kagalwalla
