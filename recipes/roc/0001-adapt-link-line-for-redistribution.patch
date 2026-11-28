@@ -1,0 +1,79 @@
+Subject: [PATCH] adapt the macOS/external-LLVM link line for redistribution
+
+Two adjustments that only matter when roc is built somewhere other than
+upstream's own CI:
+
+  * roc's default build links a prebuilt LLVM from the roc-bootstrap project,
+    which is configured without libxml2, and the hardcoded link line matches
+    that. Passing -Dllvm-path (or -Dsystem-llvm) swaps in an LLVM that
+    generally does have libxml2 enabled -- conda-forge's llvmdev does -- and
+    LLVMWindowsManifest then leaves 16 undefined xml symbols at link time:
+
+        error: undefined symbol: _xmlSetGenericErrorFunc
+            note: referenced by libLLVMWindowsManifest.a(WindowsManifestMerger.cpp.o)
+
+    Link libxml2 in exactly that case, leaving the bundled path untouched.
+
+  * On macOS, reserve Mach-O header padding so install_name_tool can rewrite
+    install names and rpaths afterwards. Any packaging system that relocates
+    the binary does this, and without the padding it fails with "larger
+    updated load commands do not fit ... the program must be relinked".
+
+--- a/build.zig
++++ b/build.zig
+@@ -6289,6 +6289,14 @@
+     configureBackend(exe, target);
+     exe.root_module.addImport("llvm_codegen", llvm_codegen_module);
+     linkWatchPlatformLibs(exe, target);
++
++    if (target.result.os.tag == .macos) {
++        // Leave room in the Mach-O header for install_name_tool to rewrite the
++        // install names and rpaths. Packaging systems that relocate the binary
++        // (Homebrew, conda) do exactly that, and without the padding it fails
++        // with "larger updated load commands do not fit".
++        exe.headerpad_max_install_names = true;
++    }
+ 
+     // Build str and int test platform host libraries for native target
+     // (fx and fx-open are only built by build-test-hosts for CLI platform tests)
+@@ -6703,7 +6711,7 @@
+     if (use_bundled_deps) {
+         addStaticBinaryenOptionsToModule(exe.root_module);
+     }
+-    try addStaticLlvmOptionsToModule(exe.root_module);
++    try addStaticLlvmOptionsToModule(exe.root_module, use_bundled_deps);
+ 
+     add_tracy(b, roc_modules.build_options, exe, target, true, tracy);
+ 
+@@ -6775,7 +6783,7 @@
+     const llvm_paths = llvmPaths(b, target, use_system_llvm, user_llvm_path) orelse return;
+     step.root_module.addLibraryPath(.{ .cwd_relative = llvm_paths.lib });
+     step.root_module.addIncludePath(.{ .cwd_relative = llvm_paths.include });
+-    try addStaticLlvmOptionsToModule(step.root_module);
++    try addStaticLlvmOptionsToModule(step.root_module, !use_system_llvm and user_llvm_path == null);
+     step.root_module.addImport("llvm_codegen", llvm_codegen_module);
+     step.root_module.addAnonymousImport("llvm_compile", .{
+         .root_source_file = b.path("src/llvm_compile/mod.zig"),
+@@ -6971,7 +6979,7 @@
+ });
+ 
+ // The following is adapted from the Zig compiler at https://codeberg.org/ziglang/zig and licensed under the MIT license. Thanks, Zig team!
+-fn addStaticLlvmOptionsToModule(mod: *std.Build.Module) !void {
++fn addStaticLlvmOptionsToModule(mod: *std.Build.Module, use_bundled_deps: bool) !void {
+     const cpp_cflags = exe_cflags ++ [_][]const u8{"-DNDEBUG=1"};
+     mod.addCSourceFiles(.{
+         .files = &cpp_sources,
+@@ -6991,6 +6999,13 @@
+     }
+ 
+     mod.linkSystemLibrary("z", link_static);
++
++    if (!use_bundled_deps) {
++        // The roc-bootstrap LLVM is built without libxml2, but distro and
++        // package-manager LLVM builds (conda-forge's llvmdev, for one) enable
++        // it, and LLVMWindowsManifest then needs it at link time.
++        mod.linkSystemLibrary("xml2", link_static);
++    }
+ 
+     if (mod.resolved_target.?.result.os.tag != .windows or mod.resolved_target.?.result.abi != .msvc) {
+         // Use Zig's bundled static libc++ to keep the binary statically linked
