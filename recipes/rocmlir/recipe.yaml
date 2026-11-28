@@ -1,0 +1,122 @@
+schema_version: 1
+
+context:
+  version: "7.2.4"
+
+recipe:
+  name: rocmlir-split
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ROCm/rocMLIR/archive/refs/tags/rocm-${{ version }}.tar.gz
+  sha256: d5106151f29d8788ef6e2519565897ff759735903f8d13de2995f0a0959335ee
+
+build:
+  number: 0
+  skip:
+    - not linux
+    - hip_compiler_version in (None, "None")
+
+outputs:
+  - staging:
+      name: rocmlir-build
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ compiler('hip') }}
+        - cmake
+        - ninja
+        - python ${{ python_min }}.*
+      host:
+        - rocm-core ${{ version }}.*
+        - rocm-cmake
+        - rocm-device-libs ${{ version }}.*
+        - rocr-runtime ${{ version }}.*
+    build:
+      script: build.sh
+
+  - package:
+      name: librocmlir
+    inherit: rocmlir-build
+    build:
+      files:
+        include:
+          - "**/*"
+        exclude:
+          - include/**
+          - lib/*.a
+          - lib/cmake/**
+          - lib/pkgconfig/**
+          - share/pkgconfig/**
+          - share/doc/**
+    tests:
+      - package_contents:
+          files:
+            exists:
+              - lib/librockCompiler.so
+            not_exists:
+              - include/**
+              - lib/librockCompiler.a
+              - lib/libMLIR*.so*
+              - lib/libMLIRRockOps.a
+      - requirements:
+          run:
+            - python
+        script:
+          - >-
+            python -c "import ctypes, os;
+            lib = ctypes.CDLL(os.path.join(os.environ['PREFIX'], 'lib/librockCompiler.so'));
+            assert hasattr(lib, 'miirCreateHandle');
+            assert hasattr(lib, 'mlirContextCreate')"
+
+  - package:
+      name: librocmlir-devel
+    inherit:
+      from: rocmlir-build
+      run_exports: false
+    build:
+      files:
+        - include/**
+        - lib/*.a
+        - lib/cmake/**
+        - lib/pkgconfig/**
+        - share/pkgconfig/**
+        - share/doc/**
+    requirements:
+      run:
+        - rocr-runtime
+        - ${{ pin_subpackage('librocmlir', exact=True) }}
+      run_exports:
+        - ${{ pin_subpackage('librocmlir', upper_bound='x.x') }}
+    tests:
+      - requirements:
+          run:
+            - cmake-package-check
+            - ${{ compiler('c') }}
+            - ${{ compiler('cxx') }}
+        script:
+          - cmake-package-check rocmlir --targets rocMLIR::rockCompiler
+      - package_contents:
+          include:
+            - rocmlir/Miir.h
+            - rocmlir/external/include/mlir-c/IR.h
+            - rocmlir/mlir-c/Dialect/Rock.h
+            - rocmlir/mlir-c/Dialect/MIGraphX.h
+
+about:
+  homepage: https://github.com/ROCm/rocMLIR
+  repository: https://github.com/ROCm/rocMLIR
+  license: Apache-2.0 WITH LLVM-exception
+  license_file: LICENSE.TXT
+  summary: ROCm MLIR-based convolution and GEMM kernel generator
+  description: |
+    rocMLIR is an MLIR-based convolution and GEMM kernel generator for ROCm.
+    It provides high-performance compute kernels for machine learning workloads.
+
+extra:
+  feedstock-name: rocmlir
+  recipe-maintainers:
+    - flferretti
+    - conda-forge/rocm-core
