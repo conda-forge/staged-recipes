@@ -1,0 +1,77 @@
+schema_version: 1
+
+context:
+  version: "0.3.15"
+  miniz_version: "3.1.2"
+
+package:
+  name: kuba-zip
+  version: ${{ version }}
+
+source:
+  url: https://github.com/kuba--/zip/archive/refs/tags/v${{ version }}%2Bminiz.${{ miniz_version }}.tar.gz
+  sha256: e2920060ac394ed898cc8a1d3c29302fef715542d833919e9571862fa7734a2e
+  patches:
+    - cmake-library.patch
+
+build:
+  number: 0
+  script:
+    file: ${{ 'build.bat' if win else 'build.sh' }}
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  run_exports:
+    - ${{ pin_subpackage('kuba-zip', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      include:
+        - zip/zip.h
+      lib:
+        - kuba-zip
+      files:
+        - if: win
+          then: Library/bin/kuba-zip.dll
+        - if: win
+          then: Library/lib/cmake/zip/zipConfig.cmake
+          else: lib/cmake/zip/zipConfig.cmake
+        - if: win
+          then: Library/lib/cmake/zip/zipConfigVersion.cmake
+          else: lib/cmake/zip/zipConfigVersion.cmake
+  - script:
+      # Match the DLL's release CRT when freeing memory from zip_entry_read on Windows.
+      - cmake -S test -B test-build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - cmake --build test-build
+      - ctest --test-dir test-build --verbose --output-on-failure
+    files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('c') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+
+about:
+  homepage: https://github.com/kuba--/zip
+  summary: Simple, portable ZIP library written in C
+  description: |
+    A portable C library for creating, reading, appending to, and extracting
+    ZIP archives. It bundles miniz for compression and decompression.
+    The shared library is named kuba-zip and exports the zip::zip CMake target.
+  license: MIT AND Unlicense
+  license_file:
+    - LICENSE.txt
+    - ${{ RECIPE_DIR }}/MINIZ-LICENSES.txt
+  documentation: https://github.com/kuba--/zip#readme
+  repository: https://github.com/kuba--/zip
+
+extra:
+  recipe-maintainers:
+    - phreed
