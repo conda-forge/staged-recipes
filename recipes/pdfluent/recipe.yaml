@@ -1,0 +1,75 @@
+schema_version: 1
+
+context:
+  version: "1.4.0"
+
+package:
+  name: pdfluent
+  version: ${{ version }}
+
+source:
+  url: https://files.pythonhosted.org/packages/source/p/pdfluent/pdfluent-${{ version }}.tar.gz
+  sha256: db21b9925d9adc97fcc43734e28f8c7d4d35e861fb4135f6a7694bae877cf5cd
+
+build:
+  number: 0
+  python:
+    # pip's Windows launcher embeds the build prefix as its interpreter path.
+    # rattler-build writes relocatable entry points from this list instead.
+    entry_points:
+      - pdfluent = pdfluent._cli:main
+  script:
+    - cd pdf-python
+    - cargo-bundle-licenses --format yaml --output ../THIRDPARTY.yml
+    - cd ..
+    - python -m pip install . -vv --no-deps --no-build-isolation
+    - if: win
+      then:
+        - if exist "%PREFIX%\Scripts\pdfluent.exe" del "%PREFIX%\Scripts\pdfluent.exe"
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('rust') }}
+    - ${{ stdlib('c') }}
+    - cargo-bundle-licenses
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.0,<2.0
+  host:
+    - python
+    - pip
+    - maturin >=1.0,<2.0
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - pdfluent
+      pip_check: true
+  - script:
+      - pdfluent --help
+
+about:
+  homepage: https://pdfluent.com
+  summary: PDF SDK for Python, written in Rust, with no system dependencies
+  description: |
+    PDFluent reads, renders, edits, signs and validates PDF files from Python.
+    The engine is pure Rust and ships as a compiled extension, so there is
+    nothing else to install. It also extracts text, tables and Markdown for
+    document pipelines.
+  license: AGPL-3.0-only
+  license_file:
+    - LICENSE
+    - NOTICE
+    - THIRD_PARTY_LICENSES.txt
+    - THIRDPARTY.yml
+  documentation: https://pdfluent.com/docs
+  repository: https://github.com/pdfluent/pdfluent-sdk
+
+extra:
+  recipe-maintainers:
+    - jasperdew
