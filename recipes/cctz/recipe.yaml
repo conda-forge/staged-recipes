@@ -10,15 +10,13 @@ package:
 source:
   url: https://github.com/google/cctz/archive/refs/tags/v${{ version }}.tar.gz
   sha256: 47d2d68e7cb5af3296dc7e69b0f4a765589f1b2f4af4b9c42e772414c428b421
-  patches:
-    - if: win
-      then: windows-zoneinfo.patch
-    - if: osx
-      then: private-corefoundation.patch
 
 build:
   number: 0
   script:
+    # Link by framework name so the exported CMake target works with the consumer's SDK.
+    - if: osx
+      then: export CMAKE_ARGS="$CMAKE_ARGS -DCoreFoundation:STRING=-Wl,-framework,CoreFoundation"
     - if: win
       then: >-
         cmake -S . -B build -G Ninja %CMAKE_ARGS% -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%"
@@ -55,11 +53,16 @@ tests:
         exists:
           - ${{ "Library/" if win else "" }}lib/cmake/cctz/cctz-config.cmake
   - script:
+      - if: win
+        then: set "TZDIR=%PREFIX%\share\zoneinfo"
       - time_tool --tz=America/New_York @0
 
 about:
   homepage: https://github.com/google/cctz
   summary: C++ library for translating between absolute and civil times using time zone rules
+  description: |
+    CCTZ uses the IANA time zone database to look up named zones. On Windows,
+    set TZDIR to the share\zoneinfo directory in your conda environment.
   license: Apache-2.0
   license_file: LICENSE.txt
 
