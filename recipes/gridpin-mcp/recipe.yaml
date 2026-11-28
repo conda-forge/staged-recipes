@@ -1,0 +1,74 @@
+schema_version: 1
+
+context:
+  version: "0.1.0"
+
+package:
+  name: gridpin-mcp
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/g/gridpin-mcp/gridpin_mcp-${{ version }}.tar.gz
+  sha256: 45680e7fe9701fa57aa87b839a44c66b36921d50d8add1458dc631f51568bfcd
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+  python:
+    entry_points:
+      - gridpin-mcp = gridpin_mcp.cli:serve
+      - gridpin-fetch = gridpin_mcp.cli:fetch_main
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - setuptools >=77
+  run:
+    - python >=${{ python_min }}
+    - gridpin >=0.4.0,<0.5
+    - mcp >=2.3,<3
+    - typing_extensions >=4.13
+
+tests:
+  - python:
+      imports:
+        - gridpin_mcp
+        - gridpin_mcp.server
+      pip_check: true
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - files:
+      recipe:
+        - run_test.py
+      source:
+        - tests/
+    requirements:
+      run:
+        - python ${{ python_min }}.*
+        - pytest
+    script:
+      - gridpin-fetch --list
+      - python run_test.py
+      # tests that need a country file skip themselves; the rest use a fake network
+      - pytest tests -v
+
+about:
+  homepage: https://gridpin.dev
+  summary: MCP server for offline geocoding with GridPin, one local file per country
+  description: |
+    gridpin-mcp exposes the GridPin offline geocoder to AI agents as a local
+    stdio MCP server: geocode, reverse, batch, list_countries and
+    download_sheet. Queries never leave the machine; there is no API key.
+    gridpin-fetch downloads a country file and verifies it against the
+    signed release.
+  license: Apache-2.0
+  license_file: LICENSE
+  documentation: https://gridpin.dev/docs
+  repository: https://github.com/gridpin/gridpin
+
+extra:
+  recipe-maintainers:
+    - gridpin-reserve
