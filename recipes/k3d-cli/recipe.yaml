@@ -1,0 +1,59 @@
+context:
+  version: "5.9.0"
+
+package:
+  name: k3d-cli
+  version: ${{ version }}
+
+source:
+  url: https://github.com/k3d-io/k3d/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 969cce82c4871bb829be798655abe2b6709b77cc0f42f7ff69293c621dfbbab0
+  target_directory: src
+
+build:
+  number: 0
+  script:
+    - cd src
+    - go-licenses save . --save_path ../library_licenses
+    - if: win
+      then: |
+        if not exist "%LIBRARY_BIN%" mkdir "%LIBRARY_BIN%"
+        set CGO_ENABLED=0
+        go build -p 2 -mod=vendor -trimpath -ldflags "-s -w -X github.com/k3d-io/k3d/v5/version.Version=v${PKG_VERSION}" -o "%LIBRARY_BIN%\\k3d.exe" .
+        if errorlevel 1 exit 1
+    - if: not win
+      then: |
+        set -euxo pipefail
+        mkdir -p "${PREFIX}/bin"
+        export CGO_ENABLED=0
+        go build -p 2 -mod=vendor -trimpath -ldflags "-s -w -X github.com/k3d-io/k3d/v5/version.Version=v${PKG_VERSION}" -o "${PREFIX}/bin/k3d" .
+
+requirements:
+  build:
+    - ${{ compiler('go-nocgo') }}
+    - go-licenses
+
+tests:
+  - script:
+      - k3d version
+      - k3d --help
+  - package_contents:
+      bin:
+        - k3d
+
+about:
+  homepage: https://k3d.io/
+  summary: Little helper to run CNCF's k3s in Docker
+  description: |
+    k3d creates containerized k3s clusters. This makes it possible to run
+    multi-node k3s clusters on a single machine using Docker.
+  license: MIT
+  license_file:
+    - src/LICENSE
+    - library_licenses/
+  repository: https://github.com/k3d-io/k3d
+  documentation: https://k3d.io/
+
+extra:
+  recipe-maintainers:
+    - phreed
