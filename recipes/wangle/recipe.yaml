@@ -1,0 +1,87 @@
+context:
+  version: "2026.08.03.00"
+
+package:
+  name: wangle
+  version: ${{ version }}
+
+source:
+  url: https://github.com/facebook/wangle/archive/v${{ version }}.tar.gz
+  sha256: 8f6ea68f9ea80850557d5f68b5abc3af1f0c6167186520ef77255ca65302edcc
+  patches:
+    # Make find_package(wangle) work without finding folly and fizz first.
+    - 0001-Find-dependencies-in-the-CMake-config.patch
+
+build:
+  number: 0
+  skip:
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - fizz ==${{ version }}
+    - folly ==${{ version }}
+    # Libraries referenced by folly's exported CMake targets.
+    - bzip2
+    - double-conversion
+    - fmt
+    - gflags
+    - glog
+    - if: linux
+      then: libaio
+    - libboost-devel
+    - libevent
+    - liblzma-devel
+    - libsodium
+    - lz4-c
+    - openssl
+    - snappy
+    - zlib
+    - zstd
+  run_exports:
+    # wangle is ABI-unstable: consumers must use the exact same version.
+    - ${{ pin_subpackage('wangle', upper_bound='x.x.x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - wangle
+      include:
+        - wangle/ssl/SSLUtil.h
+      files:
+        - lib/cmake/wangle/wangle-config.cmake
+  - files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+        # folly's CMake config needs these development files.
+        - libboost-devel
+        - liblzma-devel
+        - zlib
+    script:
+      - cmake -S test -B build -G Ninja ${CMAKE_ARGS}
+      - cmake --build build
+      - ./build/wangle_test
+
+about:
+  homepage: https://github.com/facebook/wangle
+  summary: C++ networking library providing client/server abstractions
+  description: |
+    Wangle is a library that makes it easy to build protocols, application
+    clients, and application servers. It is built on top of folly and fizz.
+  license: Apache-2.0
+  license_file: LICENSE
+  repository: https://github.com/facebook/wangle
+
+extra:
+  recipe-maintainers:
+    - baszalmstra

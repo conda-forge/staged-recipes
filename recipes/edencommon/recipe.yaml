@@ -1,0 +1,97 @@
+context:
+  version: "2026.08.03.00"
+
+package:
+  name: edencommon
+  version: ${{ version }}
+
+source:
+  url: https://github.com/facebookexperimental/edencommon/archive/v${{ version }}.tar.gz
+  sha256: c9c4d0b7af41ff52de31c6e1aa1dbb62a7f6fcfdf058940ca1d4ef2edc3c5bec
+  patches:
+    # Add a BUILD_TESTS option, drop the unused fbthrift "py" component, and
+    # make find_package(edencommon) find its dependencies.
+    - 0001-Make-tests-optional-and-find-dependencies-in-the-CMake-config.patch
+
+build:
+  number: 0
+  skip:
+    - win
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - ninja
+  host:
+    - fb303 ==${{ version }}
+    - fbthrift ==${{ version }}
+    - fizz ==${{ version }}
+    - folly ==${{ version }}
+    - mvfst ==${{ version }}
+    - wangle ==${{ version }}
+    - gtest
+    - xxhash
+    # Libraries referenced by folly's exported CMake targets.
+    - bzip2
+    - double-conversion
+    - fmt
+    - gflags
+    - glog
+    - if: linux
+      then: libaio
+    - libboost-devel
+    - libevent
+    - liblzma-devel
+    - libsodium
+    - lz4-c
+    - openssl
+    - snappy
+    - zlib
+    - zstd
+  run_exports:
+    # edencommon is ABI-unstable: consumers must use the exact same version.
+    - ${{ pin_subpackage('edencommon', upper_bound='x.x.x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - edencommon_os
+        - edencommon_telemetry
+        - edencommon_utils
+      include:
+        - eden/common/utils/PathFuncs.h
+        - eden/common/telemetry/Stats.h
+      files:
+        - lib/cmake/edencommon/edencommon-config.cmake
+  - files:
+      recipe:
+        - test/
+    requirements:
+      run:
+        - ${{ compiler('cxx') }}
+        - cmake
+        - ninja
+        # folly's CMake config needs these development files.
+        - libboost-devel
+        - liblzma-devel
+        - zlib
+    script:
+      - cmake -S test -B build -G Ninja ${CMAKE_ARGS}
+      - cmake --build build
+      - ./build/edencommon_test
+
+about:
+  homepage: https://github.com/facebookexperimental/edencommon
+  summary: Shared library code for EdenFS, Watchman and Sapling
+  description: |
+    edencommon contains utility and telemetry libraries shared between
+    EdenFS, Watchman and Sapling.
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/facebookexperimental/edencommon
+
+extra:
+  recipe-maintainers:
+    - baszalmstra
