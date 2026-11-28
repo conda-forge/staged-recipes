@@ -1,0 +1,110 @@
+schema_version: 1
+
+context:
+  version: "0.1.19"
+  build_number: 0
+  cuda_build_string: cuda${{ cuda_compiler_version | version_to_buildstring }}
+  string_prefix: ${{ cuda_build_string if cuda_compiler_version != "None" else "cpu" }}
+
+package:
+  name: humming-kernels
+  version: ${{ version }}
+
+source:
+  url: https://files.pythonhosted.org/packages/source/h/humming-kernels/humming_kernels-${{ version }}.tar.gz
+  sha256: 3c6c7ef0e55ef6b97b8b0d4134f7f34cf988df22f7885bff27aa0b30fbbd8e65
+  patches:
+    - 0001-support-conda-native-build.patch
+
+build:
+  number: ${{ build_number }}
+  string: ${{ string_prefix }}_py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
+  skip:
+    - not linux
+    - not is_python_min
+    - cuda_compiler_version == "None"
+  python:
+    version_independent: true
+  dynamic_linking:
+    missing_dso_allowlist:
+      - "*/libcuda.so.1"
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+  host:
+    - python
+    - python-abi3
+    - setuptools >=77.0.3
+    - wheel
+    - setuptools-scm >=8
+    - pip
+    - pytorch >=2.11 *cuda*
+    - libtorch >=2.11 *cuda*
+    - cuda-version ${{ cuda_compiler_version }}.*
+    - cuda-cudart-dev
+    - cuda-nvrtc-dev
+    - triton
+    - numpy
+    - safetensors
+    - jinja2
+    - cuda-bindings
+    - tqdm
+    - tabulate
+  run:
+    - python
+    - pytorch >=2.11 *cuda*
+    - libtorch >=2.11 *cuda*
+    - cuda-cudart-dev
+    - cuda-nvrtc-dev
+    - triton
+    - numpy
+    - safetensors
+    - jinja2
+    - cuda-bindings
+    - tqdm
+    - tabulate
+  ignore_run_exports:
+    # The launcher uses PyTorch's stable ABI rather than its versioned C++ ABI.
+    from_package:
+      - pytorch
+      - libtorch
+      - numpy
+
+tests:
+  - script: abi3audit $SP_DIR/humming/_native/*/_device_info.abi3.so --strict --verbose --assume-minimum-abi3 3.10
+    requirements:
+      run:
+        - abi3audit
+  - script: python test_native.py
+    files:
+      recipe:
+        - test_native.py
+    requirements:
+      run:
+        - cuda-driver-dev
+        - python ${{ python_min }}.*
+        - pip
+  - script: python test_native.py
+    files:
+      recipe:
+        - test_native.py
+    requirements:
+      run:
+        - cuda-driver-dev
+        - python
+        - pip
+
+about:
+  summary: JIT-compiled GPU GEMM kernels for quantized inference
+  license: Apache-2.0
+  license_file: LICENSE
+  homepage: https://pypi.org/project/humming-kernels/
+  repository: https://github.com/vllm-project/humming
+  documentation: https://github.com/vllm-project/humming/tree/main/docs
+
+extra:
+  recipe-maintainers:
+    - shermansiu
