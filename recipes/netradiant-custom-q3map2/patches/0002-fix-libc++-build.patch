@@ -1,0 +1,24 @@
+From: Vorschreibung <Vorschreibung@users.noreply.github.com>
+Subject: [PATCH] fix q3map2 build with libc++ (macOS)
+
+Inserting copies of the second BSP's entities in convert_bsp.cpp
+instantiates the copy assignment of entity_t and thereby
+std::forward_list<parseMesh_t>::operator=. libstdc++ falls back to
+clear + insert for element types which are not copy assignable, but
+libc++ always copy assigns, which fails since parseMesh_t (mesh_t)
+deletes its copy assignment. The source entities are not used
+afterwards, so move them instead.
+---
+--- a/tools/quake3/q3map2/convert_bsp.cpp
++++ b/tools/quake3/q3map2/convert_bsp.cpp
+@@ -807,7 +807,9 @@
+ 	}
+ 
+ 	{
+-		entities.insert( entities.cend(), bsp.entities.cbegin() + 1, bsp.entities.cend() ); // minus world
++		// move: bsp.entities is not used anymore; copying requires entity_t to be copy assignable,
++		// which it is not with libc++ (std::forward_list<parseMesh_t>)
++		entities.insert( entities.cend(), std::make_move_iterator( bsp.entities.begin() + 1 ), std::make_move_iterator( bsp.entities.end() ) ); // minus world
+ 		numBSPEntities = entities.size();
+ 		bspModels.insert( bspModels.cend(), bsp.bspModels.cbegin() + 1, bsp.bspModels.cend() ); // minus world
+ 		bspShaders.insert( bspShaders.cend(), bsp.bspShaders.cbegin(), bsp.bspShaders.cend() );
