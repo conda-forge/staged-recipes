@@ -1,0 +1,110 @@
+# rattler-build recipe (v1 / CEP-13 format) for art.
+#
+# art is the event-processing framework itself: the `art` executable (+ gm2/lar/
+# nova flavors) and the Framework/Persistency/Utilities libraries. Last non-ROOT
+# product; art_root_io adds ROOT event I/O on top.
+
+context:
+  version: "3.15.0"
+  parts: ${{ version | split('.') }}
+  # UPS tag derived from version; art-suite pads minor/patch but NOT major (v3_15_00).
+  git_tag: ${{ "v" ~ parts[0] ~ "_" ~ ("0" ~ parts[1])[-2:] ~ "_" ~ ("0" ~ parts[2])[-2:] }}
+
+package:
+  name: art
+  version: ${{ version }}
+
+source:
+  url: https://github.com/art-framework-suite/art/archive/refs/tags/${{ git_tag }}.tar.gz
+  sha256: 3faa8c90d85b5ac100c56584f2bf05a664ed6d5243e53df1fe9e4372d4136eed
+  patches:
+    # Drop -Werror: art builds with VIGILANT+WERROR+-pedantic; over its large
+    # surface conda's newer libstdc++/gcc emits vigilant warnings WERROR would
+    # promote to errors. No logic change. See potential_improvements.md (#2).
+    - patches/0001-drop-WERROR.patch
+    # IWYU: add missing standard includes that older libstdc++ pulled in
+    # transitively but conda's newer one does not (the cassert set the v3_14_04
+    # recipe carried is no longer needed at 3.15.00/C++20).
+    - patches/0002-add-algorithm-includes.patch
+    - patches/0004-add-cstdint-limits-includes.patch
+    # Missing <cassert> includes (assert() not pulled in by newer libstdc++).
+    - patches/0005-add-cassert-includes.patch
+    # Boost 1.87 removed the boost::json::error_code alias (deprecated aliases to
+    # Boost.System were dropped in 1.87; art was written against 1.82) -- swap to
+    # boost::system::error_code. Needed at boost >=1.87 (incl. the 1.90 we pin to
+    # match conda-forge geant4); skipped on <=1.86 where the alias still exists.
+    # Gated on the libboost_devel variant. (Lexicographic compare OK for 1.8x-1.9x.)
+    - if: libboost_devel >= "1.87"
+      then:
+        - patches/0003-boost-json-error-code.patch
+
+build:
+  number: 0
+  script: build.sh
+  skip: not linux
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib('c') }}
+    - cmake
+    - make
+  host:
+    - cetmodules <4.0a0  # build system (local channel; noarch)
+    - canvas                     # find_package direct (local channel)
+    - hep_concurrency            # find_package direct (local channel)
+    - messagefacility            # find_package direct (local channel)
+    - fhiclcpp                   # find_package direct (local channel)
+    - cetlib                     # find_package direct (local channel)
+    - cetlib_except              # find_package direct (local channel)
+    - clhep                      # find_package(CLHEP COMPONENTS Random Vector)
+    - range-v3                   # find_package(Range-v3) (CF current = 0.12.0)
+    - tbb-devel                  # find_package(TBB); CF current. The whole stack
+                                 # is rebuilt against one tbb, so the old art<->
+                                 # hep_concurrency task_group ABI coupling is moot.
+    - libboost-devel             # find_package(Boost date_time/graph/program_options/regex/filesystem/...)
+    - catch2                     # transitive: messagefacilityConfig find_dependency(Catch2)
+    - libsqlite                  # transitive via cetlib/fhiclcpp Configs
+    # openssl intentionally omitted (cetlib's private dep; transitive only).
+  run:
+    # Runtimes arrive via run_exports of the host packages.
+  run_exports:
+    - ${{ pin_subpackage('art', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      lib:
+        - art_Utilities
+        - art_Framework_Core
+        - art_Persistency_Provenance
+        - art_Version
+      include:
+        - art/Utilities/Globals.h
+        - art/Version/GetReleaseVersion.h
+        - art/Framework/Core/ConsumesCollector.h
+      bin:
+        - art
+        - gm2
+        - lar
+        - nova
+      files:
+        - lib/art/cmake/artConfig.cmake
+
+about:
+  homepage: https://github.com/art-framework-suite/art
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: art -- the FNAL event-processing framework
+  description: |
+    art is the event-processing framework used by Fermilab Intensity Frontier
+    experiments. It provides the `art` executable (and the gm2/lar/nova flavored
+    builds), the module/service/source plugin system, the EventProcessor and
+    scheduling machinery, and the Framework/Principal/Persistency/Utilities
+    libraries. Built on canvas, hep_concurrency, messagefacility, fhiclcpp,
+    cetlib(_except), CLHEP, Range-v3, TBB and Boost.
+  repository: https://github.com/art-framework-suite/art
+
+extra:
+  recipe-maintainers:
+    - calcuttj
