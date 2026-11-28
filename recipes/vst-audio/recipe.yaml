@@ -1,0 +1,132 @@
+schema_version: 1
+
+context:
+  # Keep this in sync with bindings/python/pyproject.toml.
+  version: "0.1.2"
+
+package:
+  name: vst-audio
+  version: ${{ version }}
+
+source:
+  url: https://github.com/115dkk/vst-audio/archive/refs/tags/python-v${{ version }}.tar.gz
+  sha256: 7f6977404cb0a68a73ace108a0d78623739695b7cecb1032fd31af242528c59d
+
+build:
+  number: 0
+  skip:
+    # The worker exists for these four targets only.
+    - host_platform not in ["linux-64", "osx-64", "osx-arm64", "win-64"]
+    - is_abi3 and not is_python_min
+  python:
+    version_independent: ${{ is_abi3 }}
+  script:
+    interpreter: python
+    file: build.py
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - maturin >=1.16,<2
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - python >=3.11
+  host:
+    - if: is_abi3
+      then: python ${{ python_min }}.*
+      else: python
+    - if: is_abi3
+      then: python-abi3
+    - maturin >=1.16,<2
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - numpy >=1.21
+
+tests:
+  - python:
+      imports:
+        - vst_audio
+      pip_check: true
+      # One abi3 build serves every Python from python_min up: test both ends.
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+  - script:
+      interpreter: python
+      content: |
+        import os
+        from pathlib import Path
+        import subprocess
+        import sys
+        import vst_audio
+
+        # Test the shipped worker, not one supplied by the surrounding shell.
+        os.environ.pop("VST_AUDIO_WORKER", None)
+        worker = vst_audio.Host().worker.resolve()
+        site_packages = Path(os.environ["SP_DIR"]).resolve()
+        assert worker.is_file(), worker
+        assert worker.is_relative_to(site_packages), (worker, site_packages)
+        assert os.access(worker, os.X_OK), worker
+        subprocess.run([worker, "--help"], check=True, timeout=30)
+        if sys.platform == "darwin":
+            # The helper bundle keeps the ad-hoc signature upstream gave it.
+            subprocess.run(["codesign", "--verify", "--strict", str(worker.parents[2])],
+                           check=True, timeout=30)
+
+        # Start the worker for real: it must reach plugin loading and report
+        # the missing file, not die while initialising (exit 101 shows up as
+        # kind "disconnected").
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            try:
+                vst_audio.Host().load(Path(folder) / "missing.vst3")
+            except vst_audio.StartError as error:
+                assert error.kind in {"start", "io"}, (error.kind, error)
+            else:
+                raise AssertionError("loading a missing plugin succeeded")
+  - if: is_abi3
+    then:
+      script:
+        interpreter: python
+        content: |
+          import os
+          from pathlib import Path
+          import subprocess
+
+          package = Path(os.environ["SP_DIR"]) / "vst_audio"
+          candidates = list(package.glob("_native*.so")) + list(package.glob("_native*.pyd"))
+          assert len(candidates) == 1, candidates
+          subprocess.run([
+              "abi3audit", str(candidates[0]), "-s", "-v",
+              "--assume-minimum-abi3", "${{ python_min }}",
+          ], check=True)
+      requirements:
+        run:
+          - abi3audit
+
+about:
+  homepage: https://github.com/115dkk/vst-audio
+  repository: https://github.com/115dkk/vst-audio
+  license: (MIT OR Apache-2.0) AND BSD-3-Clause AND ISC
+  license_file:
+    - LICENSE-MIT
+    - LICENSE-APACHE
+    - LICENSE-ISC-DPF
+    - bindings/python/python/vst_audio/_worker/LICENSE-BSD-3-Clause-VST2.txt
+    - THIRDPARTY-worker.yml
+    - bindings/python/THIRDPARTY-extension.yml
+  summary: Isolated-process VST2/VST3 hosting and offline rendering for Python
+  description: |
+    vst-audio hosts VST2 and VST3 plugins in isolated native worker processes.
+    The Python package provides scanning, control, and deterministic offline
+    rendering and carries a matching worker executable for the target platform.
+
+extra:
+  recipe-maintainers:
+    - 115dkk
