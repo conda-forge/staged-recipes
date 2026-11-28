@@ -1,21 +1,22 @@
 schema_version: 1
 
 context:
-  version: 1.3.0
-  release_sha256: 40904e76b36ba57464dc6fc8285450f6ef1ae8fdc31753971f55f4b9fc2fa940
+  version: 0.1.2
+  release_sha256: 084f0878948c5355f8aafa99d81e5530419ef0908d20f30a21d9a63350fdc98b
+  source_sha256: ${{ release_sha256 }}
 
-package:
+recipe:
   name: epcsaft
   version: ${{ version }}
 
 source:
   - url: https://github.com/tannerpolley/epcsaft/releases/download/v${{ version }}/epcsaft-${{ version }}.tar.gz
-    sha256: ${{ release_sha256 }}
-  - url: https://github.com/coin-or/Ipopt/archive/refs/tags/releases/3.11.9.tar.gz
-    sha256: c092093baceec820fb917f28059b87e48831d9a7f98f312b981efda02dc7a09a
-    target_directory: ipopt-source
+    sha256: ${{ source_sha256 }}
     patches:
-      - ipopt-ma28.patch
+      - meson-native.patch
+  - url: https://github.com/coin-or/Ipopt/archive/refs/tags/releases/3.14.20.tar.gz
+    sha256: 43bddd6fa793b1694aa94d6129fe3e4a8d452d97a84ef5f2ff721c8047c75605
+    target_directory: ipopt-source
   - url: https://github.com/coin-or/CppAD/archive/refs/tags/20250000.3.tar.gz
     sha256: a3a4030ae49719e88e5057e923c4c97c5ba8910e22471f22661420ce65747fbe
     target_directory: engine/build/subprojects/CppAD-20250000.3
@@ -29,92 +30,135 @@ source:
 
 build:
   number: 0
-  skip:
-    - target_platform not in ["linux-64", "win-64"]
-    - not match(python, "3.13.*")
-  script:
-    env:
-      EPCSAFT_SOURCE_REVISION: v${{ version }}
-      EPCSAFT_SOURCE_SHA256: ${{ release_sha256 }}
-    file: ${{ "build.bat" if win else "build.sh" }}
 
-requirements:
-  ignore_run_exports:
-    by_name: [libflang]
-  build:
-    - ${{ compiler('c') }}
-    - ${{ compiler('cxx') }}
-    - ${{ compiler('fortran') }}
-    - ${{ stdlib('c') }}
-    - make
-    - cmake
-    - ninja
-    - pkgconf
-    - if: linux
-      then: patchelf
-    - if: osx
-      then: gnuconfig
-    - if: win
-      then:
-        - autotools_clang_conda
+outputs:
+  - staging:
+      name: epcsaft-native
+    build:
+      script:
+        env:
+          EPCSAFT_BUILD_JOBS: ${{ env.get("EPCSAFT_BUILD_JOBS", default="") }}
+        file: ${{ "build-native.bat" if win else "build-native.sh" }}
+    requirements:
+      ignore_run_exports:
+        by_name: [libflang]
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - ${{ compiler('fortran') }}
         - python 3.13.*
-  host:
-    - python 3.13.*
-    - pip
-    - meson >=1.8
-    - meson-python >=0.18
-    - nanobind ==2.12.0
-    - eigen ==3.4.0
-    - ceres-solver >=2.2.0,<2.3.0 cpu*
-    - if: unix
-      then: mumps-seq ==5.8.2
-    - if: win or (osx and arm64)
-      then: libboost-headers ==1.89.0
-    - if: win
-      then:
-        - openblas * openmp_*
-        - mumps-seq ==5.8.2 flang_*
-    - if: unix
-      then: [libblas, liblapack]
-    - if: win
-      then: [libblas * *openblas, liblapack * *openblas]
-  run:
-    - python
-    - ceres-solver >=2.2.0,<2.3.0 cpu*
-    - if: unix
-      then: mumps-seq >=5.8.2,<5.8.3.0a0
-    - if: win
-      then: mumps-seq ==5.8.2 flang_*
-    - if: unix
-      then: [libblas, liblapack]
-    - if: win
-      then: [libblas * *openblas, liblapack * *openblas]
+        - meson >=1.8
+        - make
+        - cmake
+        - ninja
+        - pkgconf
+        - if: win
+          then: autotools_clang_conda
+      host:
+        - eigen ==3.4.0
+        - ceres-solver >=2.2.0,<2.3.0 cpu*
+        - if: linux
+          then: mumps-seq ==5.8.2
+        - if: win
+          then: libboost-headers ==1.89.0
+        - if: win
+          then:
+            - openblas[build="openmp_*"]
+            - mumps-seq ==5.8.2 flang_*
+        - if: linux
+          then: [libblas * *netlib, liblapack * *netlib]
+        - if: win
+          then: [libblas * *openblas, liblapack * *openblas]
 
-tests:
-  - python:
-      imports:
-        - epcsaft
-      pip_check: true
-  - script:
-      file: run_test.py
+  - package:
+      name: epcsaft
+    inherit: epcsaft-native
+    build:
+      skip:
+        - target_platform not in ["linux-64", "win-64"]
+        - not match(python, "3.13.*")
+      script:
+        env:
+          EPCSAFT_BUILD_JOBS: ${{ env.get("EPCSAFT_BUILD_JOBS", default="") }}
+          EPCSAFT_SOURCE_REVISION: v${{ version }}
+          EPCSAFT_SOURCE_SHA256: ${{ source_sha256 }}
+        file: ${{ "build.bat" if win else "build.sh" }}
+    requirements:
+      ignore_run_exports:
+        by_name: [libflang]
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
+        - cmake
+        - ninja
+        - pkgconf
+        - if: linux
+          then: patchelf
+      host:
+        - python
+        - pip
+        - meson >=1.8
+        - meson-python >=0.18
+        - nanobind ==2.12.0
+        - eigen ==3.4.0
+        - ceres-solver >=2.2.0,<2.3.0 cpu*
+        - if: linux
+          then: mumps-seq ==5.8.2
+        - if: win
+          then: libboost-headers ==1.89.0
+        - if: win
+          then:
+            - openblas[build="openmp_*"]
+            - mumps-seq ==5.8.2 flang_*
+        - if: linux
+          then: [libblas * *netlib, liblapack * *netlib]
+        - if: win
+          then: [libblas * *openblas, liblapack * *openblas]
+      run:
+        - python
+        - ceres-solver >=2.2.0,<2.3.0 cpu*
+        - if: linux
+          then: mumps-seq >=5.8.2,<5.8.3.0a0
+        - if: win
+          then: mumps-seq ==5.8.2 flang_*
+        - if: linux
+          then: [libblas, liblapack]
+        - if: win
+          then: [libblas * *openblas, liblapack * *openblas]
+    tests:
+      - python:
+          imports:
+            - epcsaft
+          pip_check: true
+      - if: linux
+        then:
+          script:
+            file: check_blas.py
+          requirements:
+            run: [binutils]
+      - script:
+          file: run_test.py
 
 about:
   homepage: https://github.com/tannerpolley/epcsaft
   repository: https://github.com/tannerpolley/epcsaft
   summary: Electrolyte PC-SAFT properties, equilibrium and exact derivative actions
   description: |
-    Linux and Windows x86-64, macOS x86-64 and arm64 / CPython 3.13 package, with private Ipopt 3.11.9 and MUMPS.
+    CPython 3.13 packages for Linux and Windows x86-64,
+    with private Ipopt 3.14.20 and MUMPS.
     Corresponding source is available from the distributor in the source-set
     download alongside the matching version at
     https://github.com/tannerpolley/epcsaft/releases. It contains the exact
     Engine and Ipopt sources, embedded dependency sources, recipe and patches.
-  license: LicenseRef-GPL-3.0-with-Ipopt-permission AND EPL-1.0 AND (EPL-2.0 OR GPL-2.0-or-later) AND MPL-2.0 AND BSD-3-Clause AND MIT AND Zlib AND LicenseRef-NIST AND LicenseRef-ASL-headers
+  license: LicenseRef-GPL-3.0-with-Ipopt-permission AND EPL-2.0 AND (EPL-2.0 OR GPL-2.0-or-later) AND MPL-2.0 AND BSD-3-Clause AND MIT AND Zlib AND LicenseRef-NIST AND LicenseRef-ASL-headers
   license_file:
     - LICENSE
     - NOTICE
     - data/packets/feos-gross-sadowski-2001/1/packet.toml
     - data/packets/feos-gross-sadowski-2002/1/packet.toml
-    - ipopt-source/Ipopt/LICENSE
+    - ipopt-source/LICENSE
     - engine/build/subprojects/CppAD-20250000.3/COPYING
     - engine/build/subprojects/CppAD-20250000.3/epl-2.0.txt
     - engine/build/subprojects/HiGHS-1.15.1/LICENSE.txt
