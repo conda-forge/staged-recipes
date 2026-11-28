@@ -1,0 +1,90 @@
+context:
+  version: "0.10.0"
+
+package:
+  name: polymerfts
+  version: ${{ version }}
+
+source:
+  url: https://github.com/yongdd/polymerfts/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 65880203a5040b452443955ebcbbfa39382d1f6bef9fe21d8d2db0940b9bb92e
+  patches:
+    # Host-compiled sources reached the CUDA runtime API only through Thrust, whose
+    # CUDA 12.9 headers no longer include it outside nvcc
+    - 0001-include-cuda-runtime.patch
+
+build:
+  number: 0
+  # One build with the MKL (CPU) and CUDA (GPU) backends; without a GPU the package runs
+  # on MKL. FFTW is not built: it is GPL and cannot be combined with MKL or cuFFT in a
+  # distributed binary.
+  skip:
+    - target_platform != "linux-64"
+    - cuda_compiler_version == "None"
+  string: cuda${{ cuda_compiler_version | version_to_buildstring }}_py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
+  script:
+    - export CMAKE_BUILD_PARALLEL_LEVEL=${CPU_COUNT}
+    # LAPACKE comes from MKL: the host also holds OpenBLAS (through NumPy), which CMake
+    # would otherwise pick although the user's BLAS variant may lack it. The CUDA runtime
+    # is linked from cuda-cudart's shared libcudart instead of CMake's static default.
+    - python -m pip install . -vv --no-deps --no-build-isolation -Ccmake.define.POLYMERFTS_USE_MKL=ON -Ccmake.define.MKL_ROOT=$PREFIX -Ccmake.define.POLYMERFTS_USE_FFTW=OFF -Ccmake.define.POLYMERFTS_USE_CUDA=ON -Ccmake.define.CMAKE_CUDA_RUNTIME_LIBRARY=Shared "-Ccmake.define.LAPACKE_LIBRARY=$PREFIX/lib/libmkl_intel_lp64.so;$PREFIX/lib/libmkl_sequential.so;$PREFIX/lib/libmkl_core.so"
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ compiler('cuda') }}
+    - ${{ stdlib('c') }}
+    - cmake >=3.25.2
+    - make
+  host:
+    - python
+    - pip
+    - scikit-build-core >=0.11
+    - pybind11 >=3.0
+    - pybind11-abi
+    - mkl-devel
+    - spglib
+    - cuda-version ==${{ cuda_compiler_version }}
+    - cuda-cudart-dev
+    - libcufft-dev
+  run:
+    - python
+    # The extension uses NumPy only through its Python API (pybind11/numpy.h)
+    - numpy >=2.0
+    - mkl
+    - spglib
+    - scipy >=1.14
+    - matplotlib-base >=3.10
+    - networkx >=3.0
+    - pyyaml >=6.0
+
+tests:
+  - python:
+      imports:
+        - polymerfts
+        - polymerfts._core
+      pip_check: true
+  - files:
+      recipe:
+        - run_test.py
+    script:
+      - python run_test.py
+
+about:
+  homepage: https://github.com/yongdd/polymerfts
+  summary: Polymer field theory simulations (SCFT, L-FTS and CL-FTS) on CPUs and NVIDIA GPUs
+  description: |
+    PolymerFTS implements self-consistent field theory (SCFT), Langevin
+    field-theoretic simulations (L-FTS) and complex Langevin simulations (CL-FTS)
+    of polymer systems: arbitrary acyclic branched polymers, multi-monomer
+    systems, continuous and discrete chain models, and space-group symmetry.
+    Python simulation loops call C++20 kernels. This package carries the
+    Intel MKL (CPU) and CUDA (GPU) backends and uses the GPU when one is present.
+  license: Apache-2.0
+  license_file: LICENSE
+  documentation: https://github.com/yongdd/polymerfts#readme
+  repository: https://github.com/yongdd/polymerfts
+
+extra:
+  recipe-maintainers:
+    - yongdd
