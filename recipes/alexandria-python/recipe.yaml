@@ -1,0 +1,70 @@
+context:
+  version: "1.95"
+
+package:
+  name: alexandria-python
+  version: ${{ version }}
+
+source:
+  url: https://github.com/AlexandriaChemistry/ACT/archive/v${{ version }}.tar.gz
+  sha256: 6c0a35c6caa329c73c1c59c22e22a481c65439fbfdbefd233971d3380a5dfe21
+
+# The Python package act of ACT, which runs the alexandria program of the
+# package alexandria. It is pure Python. The classes of ACT (act.ForceField,
+# act.Molecule and so on) are in the compiled module act._core, which this
+# package does not have yet: act.classes_available() is False. It is not
+# noarch since it needs alexandria, which is only built for some platforms;
+# with nothing to compile, a build per Python version takes seconds.
+build:
+  number: 0
+  # The platforms of the package alexandria
+  skip:
+    - not ((osx and arm64) or (linux and (x86_64 or aarch64)))
+  script:
+    - mkdir -p "${SP_DIR}/act"
+    - cp python/act/*.py "${SP_DIR}/act/"
+    # As the installation of ACT with CMake does: the program relative to the
+    # package, lib/pythonX.Y/site-packages/act, such that the package runs the
+    # alexandria of its environment, also when that is not in the PATH
+    - printf 'EXECUTABLE = "../../../../bin/alexandria"\n' > "${SP_DIR}/act/_installed.py"
+
+requirements:
+  host:
+    - python
+  run:
+    - python
+    # The program and its data files
+    - alexandria ==${{ version }}
+
+tests:
+  - python:
+      imports:
+        - act
+        - act.commands
+      pip_check: false
+  - files:
+      recipe:
+        - check-act.py
+    script:
+      # MPICH may fail to open the network devices of the test machine, see
+      # build.sh of the recipe alexandria
+      - export UCX_TLS=self,sm,tcp
+      - python check-act.py
+
+about:
+  homepage: https://github.com/AlexandriaChemistry/ACT
+  repository: https://github.com/AlexandriaChemistry/ACT
+  documentation: https://alexandriachemistry.github.io/ACT
+  license: GPL-2.0-or-later
+  license_file: COPYING
+  summary: Python interface of the Alexandria Chemistry Toolkit (ACT), the package act
+  description: |
+    The Python package act of the Alexandria Chemistry Toolkit runs the
+    alexandria program of the package alexandria from Python: its commands,
+    with their options as keyword arguments, and their results.
+
+extra:
+  recipe-maintainers:
+    - dspoel
+    - JulianKoengeter
+    - MansRosenbaum
